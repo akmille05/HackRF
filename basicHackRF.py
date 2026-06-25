@@ -16,7 +16,7 @@ class HackRF:
         self.frequency = 100e6
         self.sample_rate = 0
         # self.LNA_gain = 0
-        # self.VGA_gain = 0  
+        # self.VGA_gain = 0
         self.RF_amplify_enable = False
 
     def devInfo(self):
