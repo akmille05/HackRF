@@ -5,11 +5,11 @@ sdr = pyhackrf.pyhackrf_open()
 class HackRF:
 # find out what the config variables are
     
-    frequency
-    sample_rate
-    LNA_gain
-    VGA_gain
-    RF_amplify_enable
+    frequency : int
+    sample_rate : int
+    LNA_gain : int
+    VGA_gain : int
+    RF_amplify_enable : int
 
     def __init__(self):
         self.frequency = 0
@@ -43,7 +43,7 @@ class HackRF:
 
     # Write getters and setters for the config variables
 
-    def getFrequency(self)
+    def getFrequency(self):
         return self.frequency
 
     def setFrequency(self, frequency):
