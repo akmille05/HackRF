@@ -1,6 +1,7 @@
 # Will include our pytests
 
 import pytest
+import unittest
 from unittest.mock import MagicMock, patch
 
 from basicHackRF import HackRF

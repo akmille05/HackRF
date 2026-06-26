@@ -12,7 +12,7 @@ def FFT(data):
     Perform a Fast Fourier Transform on the input data.
     """
     # Placeholder for FFT implementation
-    pass            
+    pass          
 
 def filter(data, cutoff):
     """
