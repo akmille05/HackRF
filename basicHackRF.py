@@ -12,8 +12,6 @@ class HackRF:
     sdr: pyhackrf
     frequency: int
     sample_rate: int
-    LNA_gain: int
-    VGA_gain: int
     RF_amplify_enable: bool
     version: str
     serial: str
