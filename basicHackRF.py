@@ -15,6 +15,10 @@ class HackRF:
     LNA_gain: int
     VGA_gain: int
     RF_amplify_enable: bool
+    version: str
+    serial: str
+    board_ID: int
+    model_name: str
 
     def __init__(self):
         """
@@ -41,6 +45,11 @@ class HackRF:
         board_ID, model_name = self.sdr.pyhackrf_board_id_read()
         version = self.sdr.pyhackrf_version_string_read()
         serial = self.sdr.pyhackrf_board_partid_serialno_read()
+
+        self.board_ID = board_ID
+        self.model_name = model_name
+        self.version = version
+        self.serial = serial
 
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
         return line
