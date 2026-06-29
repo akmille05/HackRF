@@ -7,6 +7,8 @@
 # IQ processing
 
 #matplotlib
+import numpy as np
+import matplotlib as plt
 
 
 def FFT(data):
@@ -14,21 +16,36 @@ def FFT(data):
     Perform a Fast Fourier Transform on the input data.
     """
     # Placeholder for FFT implementation
-    pass          
+    fft = np.fft.fft(data)
+    fft = np.fft.fftshift(fft)
+
+    power = 20 * np.log10(np.abs(fft) + 1e-12)
+
+    return power         
 
 def filter(data, cutoff):
     """
     Filter the input data with a low-pass filter.
     """
     # Placeholder for filtering implementation
-    pass
+    spectrum = FFT(data)
+
+    freqs = np.fft.fftshift(
+        np.fft.fftfreq(len(data), 1 / cutoff)
+    )
+
+    plt.plot(freqs / 1e6, spectrum)
+    plt.xlabel("Frequency (MHz)")
+    plt.ylabel("Power (dB)")
+    plt.title("HackRF Spectrum")
+    plt.show()
 
 def demodulate(data, mode):
     """
     Demodulate the input data with the specified mode.
     """
     # Placeholder for demodulation implementation
-    pass
+    return np.angle(data[1:] * np.conj(data[:-1]))
 
 def spectrum_analysis(data):
     """
