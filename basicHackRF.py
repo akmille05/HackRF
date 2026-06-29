@@ -75,6 +75,7 @@ class HackRF:
         Returns:
             int: The configured frequency in Hz.
         """
+        print(self.frequency)
         return self.frequency
 
     def setFrequency(self, frequency):
@@ -93,6 +94,7 @@ class HackRF:
         Returns:
             int: The sample rate in samples per second.
         """
+        print(self.sample_rate)
         return self.sample_rate
 
     def setSampleRate(self, sample_rate):
@@ -111,6 +113,7 @@ class HackRF:
         Returns:
             bool: True if the RF amplifier is enabled, False otherwise.
         """
+        print(self.RF_amplify_enable)
         return self.RF_amplify_enable
 
     def setRF_amplify_enable(self, RF_amplify_enable):
