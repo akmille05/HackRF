@@ -6,6 +6,8 @@
 # spectrum Analysis 
 # IQ processing
 
+#matplotlib
+
 
 def FFT(data):
     """
