@@ -48,7 +48,7 @@ class HackRF:
         self.serial = serial
 
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
-        return line
+        print(line)
         
     def __del__(self):
         """
