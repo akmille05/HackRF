@@ -2,9 +2,9 @@ from basicHackRF import HackRF
 
 def main():
     sdr = HackRF()
-    sdr.devInfo()
-    sdr.getFrequency()
-    sdr.getRF_amplify_enable()
+    print(sdr.devInfo())
+    print(sdr.getFrequency())
+    print(sdr.getRF_amplify_enable())
     print(sdr.getSampleRate())
 
 if __name__ == "__main__":

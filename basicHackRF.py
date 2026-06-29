@@ -30,9 +30,6 @@ class HackRF:
             print("Connected!")
         except Exception as e:
             print(e)
-        self.frequency = 100e6
-        self.sample_rate = 0
-        self.RF_amplify_enable = False
 
     def devInfo(self):
         """
@@ -56,7 +53,7 @@ class HackRF:
         self.RF_amplify_enable = False
 
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
-        print(line)
+        return line
         
     def __del__(self):
         """
@@ -75,7 +72,7 @@ class HackRF:
         Returns:
             int: The configured frequency in Hz.
         """
-        print(self.frequency)
+        #print(self.frequency)
         return self.frequency
 
     def setFrequency(self, frequency):
@@ -113,7 +110,7 @@ class HackRF:
         Returns:
             bool: True if the RF amplifier is enabled, False otherwise.
         """
-        print(self.RF_amplify_enable)
+        #print(self.RF_amplify_enable)
         return self.RF_amplify_enable
 
     def setRF_amplify_enable(self, RF_amplify_enable):
