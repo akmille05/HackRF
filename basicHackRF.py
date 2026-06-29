@@ -25,7 +25,11 @@ class HackRF:
         Opens a connection to  HackRF device and
         initializes config values.
         """
-        self.sdr = pyhackrf.pyhackrf_open() 
+        try:
+            self.sdr = pyhackrf.pyhackrf_open()
+            print("Connected!")
+        except Exception as e:
+            print(e)
         self.frequency = 100e6
         self.sample_rate = 0
         self.RF_amplify_enable = False
@@ -113,4 +117,4 @@ class HackRF:
             RF_amplify_enable (bool): True to enable the RF amplifier, False to disable it.
         """
         self.RF_amplify_enable = RF_amplify_enable
-        self.sdr.pyhackrf_set_antenna_enable(bool)
+        self.sdr.pyhackrf_set_antenna_enable(RF_amplify_enable)
