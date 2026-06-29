@@ -51,6 +51,10 @@ class HackRF:
         self.version = version
         self.serial = serial
 
+        self.frequency = 100e6
+        self.sample_rate = 0
+        self.RF_amplify_enable = False
+
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
         print(line)
         
