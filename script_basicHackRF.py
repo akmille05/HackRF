@@ -5,7 +5,7 @@ def main():
     sdr.devInfo()
     sdr.getFrequency()
     sdr.getRF_amplify_enable()
-    sdr.getSampleRate()
+    print(sdr.getSampleRate())
 
 if __name__ == "__main__":
     main()

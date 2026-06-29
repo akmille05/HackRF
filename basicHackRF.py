@@ -94,7 +94,7 @@ class HackRF:
         Returns:
             int: The sample rate in samples per second.
         """
-        print(self.sample_rate)
+        #print(self.sample_rate)
         return self.sample_rate
 
     def setSampleRate(self, sample_rate):
