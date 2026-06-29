@@ -10,6 +10,9 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Removed
 - Two gain methods and their config vals
 
+### Added
+- yamlfile changes for our specific use case
+
 
 
 
