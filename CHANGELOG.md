@@ -19,6 +19,7 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Changed
 - fixed FFT and filter functions in signal_processing.py (alyssa-branch)
 
-
+### Changed
+- Completed rough outline of all functions in signal_processing
 
 
