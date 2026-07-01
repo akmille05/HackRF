@@ -13,7 +13,7 @@ jobs:
       - name: Install & Build
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          python -m py_compile "your_file.py"
+          python -m py_compile "basicHackRF.py"
 
   test:
     runs-on: ubuntu-latest
@@ -26,4 +26,4 @@ jobs:
       - name: Run Tests
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          python -m unittest discover -s . -p "test_*.py"
+          python -m unittest discover -s . -p "testhackrf.py"
