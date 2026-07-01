@@ -13,6 +13,12 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Added
 - yamlfile changes for our specific use case
 
+### Added
+- changes to script_basicHackRF.py (addie-branch) *pull request approved
+
+### Changed
+- fixed FFT and filter functions in signal_processing.py (alyssa-branch)
+
 
 
 
