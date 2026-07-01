@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from basicHackRF import HackRF
 
+
 class Signal:
     def signal_processing():
         hackrf = HackRF()
