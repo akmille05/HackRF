@@ -6,39 +6,49 @@
 # spectrum Analysis 
 # IQ processing
 
-#matplotlib
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
+from basicHackRF import HackRF
 
+def signal_processing():
+    hackrf = HackRF()
 
-def FFT(data):
+    hackrf.setFrequency(100e6)
+    hackrf.setSampleRate(10e6)
+
+    hackrf.devInfo()
+
+def FFT(data, sample_rate):
     """
     Perform a Fast Fourier Transform on the input data.
     """
-    # Placeholder for FFT implementation
-    fft = np.fft.fft(data)
-    fft = np.fft.fftshift(fft)
+    fft = np.fft.fftshift(np.fft.fft(data))
 
-    power = 20 * np.log10(np.abs(fft) + 1e-12)
+    power = 20*np.log10(np.abs(fft) + 1e-12)
 
-    return power         
+    frequencies = np.fft.fftshift(
+        np.fft.fftfreq(len(data), d=1/sample_rate)
+    )
 
-def filter(data, cutoff):
+    return frequencies, power     
+
+def filter(data, sample_rate, cutoff):
     """
     Filter the input data with a low-pass filter.
     """
-    # Placeholder for filtering implementation
-    spectrum = FFT(data)
+    fft = np.fft.fftshift(np.fft.fft(data))
 
     freqs = np.fft.fftshift(
-        np.fft.fftfreq(len(data), 1 / cutoff)
+        np.fft.fftfreq(len(data), d=1/sample_rate)
     )
 
-    plt.plot(freqs / 1e6, spectrum)
-    plt.xlabel("Frequency (MHz)")
-    plt.ylabel("Power (dB)")
-    plt.title("HackRF Spectrum")
-    plt.show()
+    # Keep only frequencies within the cutoff
+    fft[np.abs(freqs) > cutoff] = 0
+
+    # Convert back to the time domain
+    filtered = np.fft.ifft(np.fft.ifftshift(fft))
+
+    return filtered
 
 def demodulate(data, mode):
     """
@@ -52,7 +62,16 @@ def spectrum_analysis(data):
     Perform a spectrum analysis on the input data.
     """
     # Placeholder for spectrum analysis implementation
-    pass
+    freqs, power = FFT(data, sample_rate)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(freqs / 1e6, power)
+
+    plt.xlabel("Frequency (MHz)")
+    plt.ylabel("Power (dB)")
+    plt.title("Spectrum")
+    plt.grid(True)
+    plt.show()
 
 def iq_processing(data):
     """

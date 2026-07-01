@@ -16,8 +16,6 @@ def mock_sdr():
     sdr.pyhackrf_version_string_read.return_value = "2024.02.1"
     sdr.pyhackrf_board_partid_serialno_read.return_value = "0000000000000001"
 
-    return sdr
-
 
 @pytest.fixture
 def hackrf(mock_sdr):
