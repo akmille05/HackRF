@@ -63,28 +63,28 @@ class Signal:
         else:
             raise ValueError(f"Unsupported demodulation mode: {mode}")
 
-    def spectrum_analysis(data):
+    #def spectrum_analysis(data):
         """
         Perform a spectrum analysis on the input data.
         """
         # Placeholder for spectrum analysis implementation
-        freqs, power = FFT(data, sample_rate)
+        # freqs, power = FFT(data, sample_rate)
 
-        plt.figure(figsize=(10, 5))
-        plt.plot(freqs / 1e6, power)
+        # plt.figure(figsize=(10, 5))
+        # plt.plot(freqs / 1e6, power)
 
-        plt.xlabel("Frequency (MHz)")
-        plt.ylabel("Power (dB)")
-        plt.title("Spectrum")
-        plt.grid(True)
-        plt.show()
+        # plt.xlabel("Frequency (MHz)")
+        # plt.ylabel("Power (dB)")
+        # plt.title("Spectrum")
+        # plt.grid(True)
+        # plt.show()
 
-    def iq_processing(data):
+    #def iq_processing(data):
         """
         Process the input data as I/Q samples.
         """
         # Placeholder for IQ processing implementation
-        I = np.real(data)
-        Q = np.imag(data)
+        #I = np.real(data)
+        # Q = np.imag(data)
 
-        return I, Q
+        # return Q
