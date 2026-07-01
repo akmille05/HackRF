@@ -54,8 +54,12 @@ def demodulate(data, mode):
     """
     Demodulate the input data with the specified mode.
     """
-    # Placeholder for demodulation implementation
-    return np.angle(data[1:] * np.conj(data[:-1]))
+    if mode == "FM":
+        return np.angle(data[1:] * np.conj(data[:-1]))
+    elif mode == "AM":
+        return np.abs(data)
+    else:
+        raise ValueError(f"Unsupported demodulation mode: {mode}")
 
 def spectrum_analysis(data):
     """
@@ -78,4 +82,7 @@ def iq_processing(data):
     Process the input data as I/Q samples.
     """
     # Placeholder for IQ processing implementation
-    pass
+    I = np.real(data)
+    Q = np.imag(data)
+
+    return I, Q
