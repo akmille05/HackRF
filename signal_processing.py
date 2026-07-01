@@ -10,72 +10,81 @@ import numpy as np
 import matplotlib.pyplot as plt
 from basicHackRF import HackRF
 
-def signal_processing():
-    hackrf = HackRF()
 
-    hackrf.setFrequency(100e6)
-    hackrf.setSampleRate(10e6)
+class Signal:
+    def signal_processing():
+        hackrf = HackRF()
 
-    hackrf.devInfo()
+        hackrf.setFrequency(100e6)
+        hackrf.setSampleRate(10e6)
 
-def FFT(data, sample_rate):
-    """
-    Perform a Fast Fourier Transform on the input data.
-    """
-    fft = np.fft.fftshift(np.fft.fft(data))
+        hackrf.devInfo()
 
-    power = 20*np.log10(np.abs(fft) + 1e-12)
+    def FFT(data, sample_rate):
+        """
+        Perform a Fast Fourier Transform on the input data.
+        """
+        fft = np.fft.fftshift(np.fft.fft(data))
 
-    frequencies = np.fft.fftshift(
-        np.fft.fftfreq(len(data), d=1/sample_rate)
-    )
+        power = 20*np.log10(np.abs(fft) + 1e-12)
 
-    return frequencies, power     
+        frequencies = np.fft.fftshift(
+            np.fft.fftfreq(len(data), d=1/sample_rate)
+        )
 
-def filter(data, sample_rate, cutoff):
-    """
-    Filter the input data with a low-pass filter.
-    """
-    fft = np.fft.fftshift(np.fft.fft(data))
+        return frequencies, power     
 
-    freqs = np.fft.fftshift(
-        np.fft.fftfreq(len(data), d=1/sample_rate)
-    )
+    def filter(data, sample_rate, cutoff):
+        """
+        Filter the input data with a low-pass filter.
+        """
+        fft = np.fft.fftshift(np.fft.fft(data))
 
-    # Keep only frequencies within the cutoff
-    fft[np.abs(freqs) > cutoff] = 0
+        freqs = np.fft.fftshift(
+            np.fft.fftfreq(len(data), d=1/sample_rate)
+        )
 
-    # Convert back to the time domain
-    filtered = np.fft.ifft(np.fft.ifftshift(fft))
+        # Keep only frequencies within the cutoff
+        fft[np.abs(freqs) > cutoff] = 0
 
-    return filtered
+        # Convert back to the time domain
+        filtered = np.fft.ifft(np.fft.ifftshift(fft))
 
-def demodulate(data, mode):
-    """
-    Demodulate the input data with the specified mode.
-    """
-    # Placeholder for demodulation implementation
-    return np.angle(data[1:] * np.conj(data[:-1]))
+        return filtered
 
-def spectrum_analysis(data):
-    """
-    Perform a spectrum analysis on the input data.
-    """
-    # Placeholder for spectrum analysis implementation
-    freqs, power = FFT(data, sample_rate)
+    def demodulate(data, mode):
+        """
+        Demodulate the input data with the specified mode.
+        """
+        if mode == "FM":
+            return np.angle(data[1:] * np.conj(data[:-1]))
+        elif mode == "AM":
+            return np.abs(data)
+        else:
+            raise ValueError(f"Unsupported demodulation mode: {mode}")
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(freqs / 1e6, power)
+    def spectrum_analysis(data):
+        """
+        Perform a spectrum analysis on the input data.
+        """
+        # Placeholder for spectrum analysis implementation
+        freqs, power = FFT(data, sample_rate)
 
-    plt.xlabel("Frequency (MHz)")
-    plt.ylabel("Power (dB)")
-    plt.title("Spectrum")
-    plt.grid(True)
-    plt.show()
+        plt.figure(figsize=(10, 5))
+        plt.plot(freqs / 1e6, power)
 
-def iq_processing(data):
-    """
-    Process the input data as I/Q samples.
-    """
-    # Placeholder for IQ processing implementation
-    pass
+        plt.xlabel("Frequency (MHz)")
+        plt.ylabel("Power (dB)")
+        plt.title("Spectrum")
+        plt.grid(True)
+        plt.show()
+
+    def iq_processing(data):
+        """
+        Process the input data as I/Q samples.
+        """
+        # Placeholder for IQ processing implementation
+        I = np.real(data)
+        Q = np.imag(data)
+
+        return I, Q
