@@ -25,6 +25,11 @@ class HackRF:
         Opens a connection to  HackRF device and
         initializes config values.
         """
+        
+        self.frequency = 100000000
+        self.sample_rate = 0
+        self.RF_amplify_enable = False
+
         try:
             self.sdr = pyhackrf.pyhackrf_open()
             print("Connected!")
@@ -48,10 +53,7 @@ class HackRF:
         self.version = version
         self.serial = serial
 
-        self.frequency = 100e6
-        self.sample_rate = 0
-        self.RF_amplify_enable = False
-
+        
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
         return line
         
