@@ -1,3 +1,4 @@
 pyhackrf
 numpy
 matplotlib
+python-hackrf
