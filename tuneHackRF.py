@@ -10,14 +10,16 @@ from python_hackrf import pyhackrf
 from basicHackRF import HackRF
 import time
 import numpy as np
+import wave
 
 pyhackrf.pyhackrf_init()
 
+audio_chunks = []
 callback_count = 0
 
 def rx_callback(device, buffer, buffer_length, valid_length):
     """
-    Runs automatically whenever the HackRF receives samples.
+    Receive samples, demodulate FM, and store audio chunks.
     """
 
     raw = buffer[:valid_length]
@@ -29,7 +31,7 @@ def rx_callback(device, buffer, buffer_length, valid_length):
 
     audio = demodulate_fm(iq_samples)
 
-    print("Audio samples:", len(audio))
+    audio_chunks.append(audio)
 
     return 0
 
@@ -47,8 +49,8 @@ def main():
     sdr = HackRF()
 
     # Configure the radio
-    sdr.setFrequency(99500000)      # 99.5 MHz
-    sdr.setSampleRate(10000000)     # 10 MHz
+    sdr.setFrequency(106500000)      # 106.5 MHz
+    sdr.setSampleRate(2400000)     # 2.4 MHz
     sdr.setRF_amplify_enable(False)
 
     print('Tuned to:', sdr.getFrequency())
@@ -74,11 +76,26 @@ def main():
     sdr.sdr.pyhackrf_stop_rx() #stops receiving
     print("Stopped receiving.")
 
-    # Play the audio
-    # ...
+    # Combine all audio chunks into one array
+    audio = np.concatenate(audio_chunks)
 
-    # Keep running until the user quits
-    # ...
+    # Downsample from 2.4 MHz to 48 kHz
+    audio = audio[::50]
+
+    # Normalize audio so it is not too quiet or too loud
+    audio = audio / np.max(np.abs(audio))
+
+    # Convert to 16-bit audio format
+    audio_int16 = np.int16(audio * 32767)
+
+    # Save as WAV file
+    with wave.open("radio.wav", "w") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(48000)
+        wav_file.writeframes(audio_int16.tobytes())
+
+    print("Saved audio to radio.wav")
 
 
 if __name__ == "__main__":
