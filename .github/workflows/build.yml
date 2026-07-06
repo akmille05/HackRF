@@ -1,0 +1,29 @@
+name: Python CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install & Build
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m py_compile "basicHackRF.py"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run Tests
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python -m unittest discover -s . -p "testhackrf.py"
