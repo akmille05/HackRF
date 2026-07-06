@@ -24,9 +24,8 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run Tests
-        run: |
+        run: |          
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           sudo apt-get update
           sudo apt-get install -y pkg-config libusb-1.0-0-dev libhackrf-dev
-          
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           python -m unittest discover -s . -p "testhackrf.py"
