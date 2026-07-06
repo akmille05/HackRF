@@ -25,4 +25,14 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Added 
 - created script_signal_processing.py to run the signal_processing.py file
 
+### Changed
+- changed signal_processing.py file to have a full implementation
+
+### Changed
+- fixed checkstyle errors in signal_processing (Alyssa)
+- added more precise filtering in signal_processing (Alyssa)
+- updated tunehackrf (frequency and sample rate) and got output to radio.wav (Addie)
+
+
+
 
