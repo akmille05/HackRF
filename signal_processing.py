@@ -44,14 +44,16 @@ class Signal:
 
         return frequencies, power     
 
-    def filter(self, data, sample_rate, filter_type, 
+    def filter(self, data, sample_rate, filter_type,
+               
         cutoff=None, low_cutoff=None, high_cutoff=None):
         """
         Filter the input data with a low-pass filter.
         """
-        fft_frequencies = Signal.FFT(self, data, sample_rate)
+        fft_frequencies, _ = self.FFT(data, sample_rate)
 
         # Create mask
+        fft_data = np.fft.fftshift(np.fft.fft(data))
         mask = np.zeros(len(fft_frequencies), dtype=bool)
 
         if filter_type == "lowpass":
@@ -76,6 +78,8 @@ class Signal:
         filtered = np.fft.ifft(np.fft.ifftshift(fft_data))
 
         return filtered
+    
+    #produce graphs
 
     def demodulate(self, data, mode):
         """
