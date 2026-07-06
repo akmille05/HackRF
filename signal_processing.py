@@ -13,7 +13,7 @@ from basicHackRF import HackRF
 
 class Signal:
 
-    iq_samples : int
+    iq_samples: int
 
     def signal_processing(self):
         hackrf = HackRF()
