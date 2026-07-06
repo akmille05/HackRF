@@ -32,6 +32,7 @@ This is where will will store what changes we made so we can keep eachother in t
 - fixed checkstyle errors in signal_processing (Alyssa)
 - added more precise filtering in signal_processing (Alyssa)
 - updated tunehackrf (frequency and sample rate) and got output to radio.wav (Addie)
+- updated signal_processing fixing filter (Alyssa)
 
 
 
