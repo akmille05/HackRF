@@ -44,33 +44,29 @@ class Signal:
 
         return frequencies, power     
 
-    def filter(self, data, sample_rate, filter_type,
-           cutoff=None, low_cutoff=None, high_cutoff=None):
+    def filter(self, data, sample_rate, filter_type, 
+        cutoff=None, low_cutoff=None, high_cutoff=None):
         """
         Filter the input data with a low-pass filter.
         """
-        # FFT
-        fft_data = np.fft.fftshift(np.fft.fft(data))
-        freqs = np.fft.fftshift(
-            np.fft.fftfreq(len(data), d=1 / sample_rate)
-        )
+        fft_frequencies = Signal.FFT(self, data, sample_rate)
 
         # Create mask
-        mask = np.zeros(len(freqs), dtype=bool)
+        mask = np.zeros(len(fft_frequencies), dtype=bool)
 
         if filter_type == "lowpass":
-            mask = np.abs(freqs) <= cutoff
+            mask = np.abs(fft_frequencies) <= cutoff
 
         elif filter_type == "highpass":
-            mask = np.abs(freqs) >= cutoff
+            mask = np.abs(fft_frequencies) >= cutoff
 
         elif filter_type == "bandpass":
-            mask = (np.abs(freqs) >= low_cutoff) & \
-                (np.abs(freqs) <= high_cutoff)
+            mask = (np.abs(fft_frequencies) >= low_cutoff) & \
+                (np.abs(fft_frequencies) <= high_cutoff)
 
         elif filter_type == "bandstop":
-            mask = (np.abs(freqs) < low_cutoff) | \
-                (np.abs(freqs) > high_cutoff)
+            mask = (np.abs(fft_frequencies) < low_cutoff) | \
+                (np.abs(fft_frequencies) > high_cutoff)
 
         else:
             raise ValueError("Invalid filter type.")
@@ -92,16 +88,15 @@ class Signal:
         else:
             raise ValueError(f"Unsupported demodulation mode: {mode}")
 
-    def spectrum_analysis(self, data, sample_rate):
+    def spectrum_analysis(self, data, sample_rate, filter_type):
         """
         Perform a spectrum analysis on the input data.
         """
         #Placeholder for spectrum analysis implementation
-        freqs, power = Signal.FFT(self, data, sample_rate)
+        freqs, power = Signal.filter(self, data, sample_rate, filter_type)
 
         plt.figure(figsize=(10, 5))
         plt.plot(freqs / 1e6, power)
-
         plt.xlabel("Frequency (MHz)")
         plt.ylabel("Power (dB)")
         plt.title("Spectrum")
