@@ -25,14 +25,16 @@ class HackRF:
         Opens a connection to  HackRF device and
         initializes config values.
         """
+        
+        self.frequency = 100000000
+        self.sample_rate = 0
+        self.RF_amplify_enable = False
+
         try:
             self.sdr = pyhackrf.pyhackrf_open()
             print("Connected!")
         except Exception as e:
             print(e)
-        self.frequency = 100e6
-        self.sample_rate = 0
-        self.RF_amplify_enable = False
 
     def devInfo(self):
         """
@@ -51,8 +53,9 @@ class HackRF:
         self.version = version
         self.serial = serial
 
+        
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
-        print(line)
+        return line
         
     def __del__(self):
         """
@@ -71,6 +74,7 @@ class HackRF:
         Returns:
             int: The configured frequency in Hz.
         """
+        #print(self.frequency)
         return self.frequency
 
     def setFrequency(self, frequency):
@@ -80,7 +84,8 @@ class HackRF:
         Args:
             frequency (int): Desired frequency in Hz.
         """
-        self.frequency = frequency
+        self.frequency = frequency ## chnages the python variable but not the hackrf frequency
+        self.sdr.pyhackrf_set_freq(frequency) # actually changes the hackrf frequency
 
     def getSampleRate(self):
         """
@@ -89,6 +94,7 @@ class HackRF:
         Returns:
             int: The sample rate in samples per second.
         """
+        #print(self.sample_rate)
         return self.sample_rate
 
     def setSampleRate(self, sample_rate):
@@ -98,7 +104,8 @@ class HackRF:
         Args:
             sample_rate (int): Desired sample rate in samples per second.
         """
-        self.sample_rate = sample_rate
+        self.sample_rate = sample_rate # changes the python variable but not the hackrf sample rate
+        self.sdr.pyhackrf_set_sample_rate(sample_rate) #actually changes the hackrf sample rate
 
     def getRF_amplify_enable(self):
         """
@@ -107,6 +114,7 @@ class HackRF:
         Returns:
             bool: True if the RF amplifier is enabled, False otherwise.
         """
+        #print(self.RF_amplify_enable)
         return self.RF_amplify_enable
 
     def setRF_amplify_enable(self, RF_amplify_enable):
