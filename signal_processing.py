@@ -13,7 +13,7 @@ from basicHackRF import HackRF
 
 class Signal:
 
-    iq_samples : int
+    iq_samples: int
 
     def signal_processing(self):
         hackrf = HackRF()
@@ -23,7 +23,6 @@ class Signal:
 
         hackrf.devInfo()
         self.iq_samples = hackrf.receiveSamples(262144)
-
 
     def recieveSamples(self, sample_number):
         return self.sample_number
@@ -45,21 +44,40 @@ class Signal:
 
         return frequencies, power     
 
-    def filter(self, data, sample_rate, cutoff):
+    def filter(self, data, sample_rate, filter_type,
+           cutoff=None, low_cutoff=None, high_cutoff=None):
         """
         Filter the input data with a low-pass filter.
         """
-        fft = np.fft.fftshift(np.fft.fft(data))
-
+        # FFT
+        fft_data = np.fft.fftshift(np.fft.fft(data))
         freqs = np.fft.fftshift(
-            np.fft.fftfreq(len(data), d=1/sample_rate)
+            np.fft.fftfreq(len(data), d=1 / sample_rate)
         )
 
-        # Keep only frequencies within the cutoff
-        fft[np.abs(freqs) > cutoff] = 0
+        # Create mask
+        mask = np.zeros(len(freqs), dtype=bool)
 
-        # Convert back to the time domain
-        filtered = np.fft.ifft(np.fft.ifftshift(fft))
+        if filter_type == "lowpass":
+            mask = np.abs(freqs) <= cutoff
+
+        elif filter_type == "highpass":
+            mask = np.abs(freqs) >= cutoff
+
+        elif filter_type == "bandpass":
+            mask = (np.abs(freqs) >= low_cutoff) & \
+                (np.abs(freqs) <= high_cutoff)
+
+        elif filter_type == "bandstop":
+            mask = (np.abs(freqs) < low_cutoff) | \
+                (np.abs(freqs) > high_cutoff)
+
+        else:
+            raise ValueError("Invalid filter type.")
+
+        fft_data *= mask
+
+        filtered = np.fft.ifft(np.fft.ifftshift(fft_data))
 
         return filtered
 
