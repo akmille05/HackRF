@@ -37,6 +37,10 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Changed
 - fixed bugs in signal_processing (Alyssa)
 
+### Added
+- c-line-branch 
+- cline_interaction.py file that has the command line interaction with the hackRF
+
 
 
 
