@@ -42,34 +42,34 @@ class Signal:
             np.fft.fftfreq(len(iq_samples), d=1/sample_rate)
         )
 
-        return frequencies, power     
+        return frequencies, power, fft
 
     def filter(self, data, sample_rate, filter_type,
-               
-        cutoff=None, low_cutoff=None, high_cutoff=None):
-        """
-        Filter the input data with a low-pass filter.
-        """
-        fft_frequencies, _ = self.FFT(data, sample_rate)
+           cutoff=None, low_cutoff=None, high_cutoff=None):
 
-        # Create mask
         fft_data = np.fft.fftshift(np.fft.fft(data))
-        mask = np.zeros(len(fft_frequencies), dtype=bool)
+
+        frequencies = np.fft.fftshift(
+            np.fft.fftfreq(len(data), d=1/sample_rate)
+        )
 
         if filter_type == "lowpass":
-            mask = np.abs(fft_frequencies) <= cutoff
+            mask = np.abs(frequencies) <= cutoff
 
         elif filter_type == "highpass":
-            mask = np.abs(fft_frequencies) >= cutoff
+            mask = np.abs(frequencies) >= cutoff
 
         elif filter_type == "bandpass":
-            mask = (np.abs(fft_frequencies) >= low_cutoff) & \
-                (np.abs(fft_frequencies) <= high_cutoff)
+            mask = (
+                (np.abs(frequencies) >= low_cutoff) &
+                (np.abs(frequencies) <= high_cutoff)
+            )
 
         elif filter_type == "bandstop":
-            mask = (np.abs(fft_frequencies) < low_cutoff) | \
-                (np.abs(fft_frequencies) > high_cutoff)
-
+            mask = (
+                (np.abs(frequencies) < low_cutoff) |
+                (np.abs(frequencies) > high_cutoff)
+            )
         else:
             raise ValueError("Invalid filter type.")
 
@@ -77,9 +77,7 @@ class Signal:
 
         filtered = np.fft.ifft(np.fft.ifftshift(fft_data))
 
-        return filtered
-    
-    #produce graphs
+        return filtered  
 
     def demodulate(self, data, mode):
         """
@@ -96,8 +94,8 @@ class Signal:
         """
         Perform a spectrum analysis on the input data.
         """
-        #Placeholder for spectrum analysis implementation
-        freqs, power = Signal.filter(self, data, sample_rate, filter_type)
+        filtered = self.filter(data, sample_rate, filter_type)
+        freqs, power, _ = self.FFT(filtered, sample_rate)
 
         plt.figure(figsize=(10, 5))
         plt.plot(freqs / 1e6, power)
@@ -105,6 +103,65 @@ class Signal:
         plt.ylabel("Power (dB)")
         plt.title("Spectrum")
         plt.grid(True)
+        plt.show()
+
+
+    def graphs(self, data, sample_rate):
+
+        filters = [
+            ("Original", None),
+            ("Low Pass", "lowpass"),
+            ("High Pass", "highpass"),
+            ("Band Pass", "bandpass"),
+            ("Band Stop", "bandstop")
+        ]
+        for title, filter_type in filters:
+            if filter_type is None:
+                filtered = data
+
+            elif filter_type == "lowpass":
+                filtered = self.filter(
+                    data,
+                    sample_rate,
+                    "lowpass",
+                    cutoff=500e3
+                )
+
+            elif filter_type == "highpass":
+                filtered = self.filter(
+                    data,
+                    sample_rate,
+                    "highpass",
+                    cutoff=500e3
+                )
+
+            elif filter_type == "bandpass":
+                filtered = self.filter(
+                    data,
+                    sample_rate,
+                    "bandpass",
+                    low_cutoff=200e3,
+                    high_cutoff=800e3
+                )
+
+            elif filter_type == "bandstop":
+                filtered = self.filter(
+                    data,
+                    sample_rate,
+                    "bandstop",
+                    low_cutoff=200e3,
+                    high_cutoff=800e3
+                )
+
+            freqs, power, _ = self.FFT(filtered, sample_rate)
+
+            plt.figure(figsize=(10,5))
+            plt.plot(freqs/1e6, power)
+            plt.title(title)
+            plt.xlabel("Frequency (MHz)")
+            plt.ylabel("Power (dB)")
+            plt.grid(True)
+
         plt.show()
 
     def iq_processing(self, data):
