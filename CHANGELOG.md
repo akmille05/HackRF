@@ -34,6 +34,9 @@ This is where will will store what changes we made so we can keep eachother in t
 - updated tunehackrf (frequency and sample rate) and got output to radio.wav (Addie)
 - updated signal_processing fixing filter (Alyssa)
 
+### Changed
+- fixed bugs in signal_processing (Alyssa)
+
 
 
 
