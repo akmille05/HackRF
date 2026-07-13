@@ -1,4 +1,4 @@
-# HackR# HackRF
+# HackRF
 
 A Python-based project that interfaces with a HackRF Software Defined Radio (SDR) on Linux to capture RF signals, analyze them, and convert them into audible audio.
 
