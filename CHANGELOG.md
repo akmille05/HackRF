@@ -41,6 +41,12 @@ This is where will will store what changes we made so we can keep eachother in t
 - c-line-branch 
 - cline_interaction.py file that has the command line interaction with the hackRF
 
+### Changed
+- More coverage for signal_processing.py (edge cases)
+
+### Added
+- created rf-analyst.md (agent to create agentic workflow)
+
 
 
 

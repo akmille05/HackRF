@@ -54,18 +54,26 @@ class Signal:
         )
 
         if filter_type == "lowpass":
+            if cutoff is None:
+                raise ValueError("Low-pass filter requires cutoff.")
             mask = np.abs(frequencies) <= cutoff
 
         elif filter_type == "highpass":
+            if cutoff is None:
+                raise ValueError("High-pass filter requires cutoff.")
             mask = np.abs(frequencies) >= cutoff
 
         elif filter_type == "bandpass":
+            if low_cutoff is None or high_cutoff is None:
+                raise ValueError("Band-pass filter requires high and low cutoffs.")
             mask = (
                 (np.abs(frequencies) >= low_cutoff) &
                 (np.abs(frequencies) <= high_cutoff)
             )
 
         elif filter_type == "bandstop":
+            if low_cutoff is None or high_cutoff is None:
+                raise ValueError("Band-stop filter requires high and low cutoffs.")
             mask = (
                 (np.abs(frequencies) < low_cutoff) |
                 (np.abs(frequencies) > high_cutoff)
