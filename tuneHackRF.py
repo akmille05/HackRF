@@ -1,12 +1,9 @@
 """
-Tuning and listening script for the HackRF.
+FM radio recording script for the HackRF.
 
-This script tunes the HackRF to a desired frequency and
-allows the user to listen to the signal received by the
-HackRF.
+This script tunes the HackRF to an FM station, records IQ samples,
+FM demodulates them, and saves the result as a WAV file.
 """
-
-from curses import raw
 
 from python_hackrf import pyhackrf
 from basicHackRF import HackRF
@@ -14,43 +11,53 @@ import time
 import numpy as np
 import wave
 
-pyhackrf.pyhackrf_init()
+recording_time = 3          # seconds
+station_freq = 99500000       # Station: 99.5 MHz
+center_freq = 99700000        # Tune HackRF 200 kHz above station
+sample_rate = 2400000        # 2.4 MHz
+audio_rate = 48000           # WAV audio sample rate
+decimation = 50              # 2,400,000 / 48,000 = 50
 
-audio_chunks = []
-callback_count = 0
+num_samples = int(recording_time * sample_rate)
+samples = np.zeros(num_samples, dtype=np.complex64)
+last_idx = 0
+
 
 def rx_callback(device, buffer, buffer_length, valid_length):
     """
-    Receive samples, demodulate FM, and store audio chunks.
+    Receive HackRF IQ samples and store them in the samples array.
     """
+
+    global samples, last_idx
+
+    accepted = valid_length // 2
 
     raw = buffer[:valid_length].astype(np.float32)
 
-    i_samples = raw[0::2]
-    q_samples = raw[1::2]
+    iq = raw[0::2] + 1j * raw[1::2]
+    iq = iq / 128.0
 
-    iq_samples = i_samples + 1j * q_samples
+    end_idx = last_idx + accepted
 
-    audio = demodulate_fm(iq_samples)
-
-    audio_chunks.append(audio)
-
+    if end_idx <= len(samples):
+        samples[last_idx:end_idx] = iq
+        last_idx = end_idx
 
     return 0
 
 def demodulate_fm(iq_samples):
     """
-    Convert IQ samples into FM audio samples.
+    FM demodulate complex IQ samples.
     """
 
-    angles = np.angle(iq_samples[1:] * np.conj(iq_samples[:-1]))
+    return np.angle(iq_samples[1:] * np.conj(iq_samples[:-1]))
 
-    return angles
 
 def fm_deemphasis(audio, sample_rate=48000, tau=75e-6):
     """
-    Apply FM de-emphasis to reduce harsh high-frequency noise.
+    Apply FM de-emphasis for U.S. broadcast FM.
     """
+
     dt = 1.0 / sample_rate
     alpha = dt / (tau + dt)
 
@@ -61,74 +68,184 @@ def fm_deemphasis(audio, sample_rate=48000, tau=75e-6):
 
     return output
 
-def main():
-    # Connect to the HackRF
-    sdr = HackRF()
+def save_wav(filename, audio):
+    """
+    Save audio samples to a WAV file.
+    """
 
-    # Configure the radio
-    sdr.setFrequency(106700000)      # 200 kHz above 106.5 MHz
-    sdr.setSampleRate(2400000)     # 2.4 MHz
-    sdr.setRF_amplify_enable(False)
-    sdr.sdr.pyhackrf_set_baseband_filter_bandwidth(1750000)
-    sdr.sdr.pyhackrf_set_lna_gain(24)
-    sdr.sdr.pyhackrf_set_vga_gain(20)
-
-    print('Tuned to:', sdr.getFrequency())
-    print("With a sample rate of ", sdr.getSampleRate())
-
-    # Start receiving samples
-    sdr.sdr.set_rx_callback(rx_callback) #tells the HackRF which function to call
-    sdr.sdr.pyhackrf_start_rx() #starts receiving
-
-    print("Receiving samples...")
-    print("Press Ctrl + C to stop.")
-
-    try:
-        while True:
-            time.sleep(1)
-
-    except KeyboardInterrupt: #Ctrl C stops the loop
-        print("Stopping receive...")
-
-    sdr.sdr.pyhackrf_stop_rx() #stops receiving
-    print("Stopped receiving.")
-
-    # Combine all audio chunks into one array
-    audio = np.concatenate(audio_chunks)
-
-    # Remove DC offset
     audio = audio - np.mean(audio)
 
-    # Simple low-pass filter using a moving average
-    filter_size = 50
-    kernel = np.ones(filter_size) / filter_size
-    audio = np.convolve(audio, kernel, mode="same")
-
-    # Downsample from 2.4 MHz to 48 kHz
-    audio = audio[::50]
-
-    #de-emphasis
-    audio = fm_deemphasis(audio, 48000)
-
-    # Normalize audio so it is not too quiet or too loud
     max_value = np.max(np.abs(audio))
-
     if max_value > 0:
         audio = audio / max_value
 
-
-    # Convert to 16-bit audio format
     audio_int16 = np.int16(audio * 32767)
 
-    # Save as WAV file
-    with wave.open("radio.wav", "w") as wav_file:
+    with wave.open(filename, "w") as wav_file:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
-        wav_file.setframerate(48000)
+        wav_file.setframerate(audio_rate)
         wav_file.writeframes(audio_int16.tobytes())
+    
+def low_pass_filter(signal, cutoff, sample_rate, num_taps=201):
+    """
+    Apply a low-pass FIR filter using NumPy.
+
+    Args:
+        signal: Real or complex input samples.
+        cutoff: Frequencies above this value are reduced.
+        sample_rate: Current sample rate in samples per second.
+        num_taps: Length of the FIR filter.
+
+    Returns:
+        Filtered samples.
+    """
+    positions = np.arange(num_taps) - (num_taps - 1) / 2
+
+    taps = (
+        2 * cutoff / sample_rate
+        * np.sinc(2 * cutoff * positions / sample_rate)
+    )
+
+    taps *= np.hamming(num_taps)
+    taps /= np.sum(taps)
+
+    return np.convolve(signal, taps, mode="same")
+
+def shift_frequency(iq_samples, frequency_shift, sample_rate):
+    """
+    Digitally shift IQ samples by a specified frequency.
+
+    Args:
+        iq_samples: Complex IQ samples.
+        frequency_shift: Frequency shift in Hz.
+        sample_rate: IQ sample rate in samples per second.
+
+    Returns:
+        Frequency-shifted IQ samples.
+    """
+    sample_numbers = np.arange(len(iq_samples))
+
+    oscillator = np.exp(
+        -1j * 2 * np.pi * frequency_shift
+        * sample_numbers / sample_rate
+    )
+
+    return iq_samples * oscillator
+
+def main():
+    global samples, last_idx
+
+    pyhackrf.pyhackrf_init()
+
+    sdr = HackRF()
+
+    sdr.setFrequency(center_freq)
+    sdr.setSampleRate(sample_rate)
+    sdr.setRF_amplify_enable(False)
+
+    sdr.sdr.pyhackrf_set_baseband_filter_bandwidth(1750000)
+    sdr.sdr.pyhackrf_set_amp_enable(False)
+    sdr.sdr.pyhackrf_set_lna_gain(24)
+    sdr.sdr.pyhackrf_set_vga_gain(20)
+
+    print("Station frequency:", station_freq)
+    print("HackRF center frequency:", sdr.getFrequency())
+    print("Sample rate:", sdr.getSampleRate())
+
+    sdr.sdr.set_rx_callback(rx_callback)
+
+    print("Recording...")
+    sdr.sdr.pyhackrf_start_rx()
+
+    time.sleep(recording_time)
+
+    sdr.sdr.pyhackrf_stop_rx()
+    print("Stopped recording.")
+
+    #pyhackrf.pyhackrf_exit()
+
+    samples = samples[:last_idx]
+
+    # Remove first samples because HackRF can have startup transients
+    samples = samples[100000:]
+
+    print("Samples recorded:", len(samples))
+
+
+    import matplotlib.pyplot as plt
+
+    # Save the captured IQ data for debugging.
+    np.save("captured_iq.npy", samples)
+
+    # Plot the frequency spectrum of the recording.
+    fft_size = min(262144, len(samples))
+    block = samples[:fft_size]
+
+    window = np.hanning(fft_size)
+    spectrum = np.fft.fftshift(np.fft.fft(block * window))
+    power = 20 * np.log10(np.abs(spectrum) + 1e-12)
+
+    frequencies = np.fft.fftshift(
+        np.fft.fftfreq(fft_size, d=1 / sample_rate)
+    )
+
+    plt.figure()
+    plt.plot((center_freq + frequencies) / 1e6, power)
+    plt.xlabel("Frequency (MHz)")
+    plt.ylabel("Power (dB)")
+    plt.title("Spectrum near the tuned frequency")
+    plt.grid()
+    plt.savefig("station_spectrum.png")
+    plt.close()
+
+    print("Saved station_spectrum.png")
+
+
+
+
+    # The station's position relative to the HackRF center frequency.
+    frequency_offset = station_freq - center_freq
+
+    # Move the desired station to the center of the IQ recording.
+    samples = shift_frequency(
+        samples,
+        frequency_offset,
+        sample_rate
+    )
+
+    # Isolate one broadcast-FM channel.
+    channel_iq = low_pass_filter(
+        samples,
+        cutoff=100000,       # Keep about ±100 kHz around the station
+        sample_rate=sample_rate,
+        num_taps=201
+    )
+
+    # Reduce 2.4 MHz to 240 kHz.
+    channel_iq = channel_iq[::10]
+    channel_rate = 240000
+
+    # FM-demodulate only the isolated station.
+    audio = demodulate_fm(channel_iq)
+
+    # Keep audible mono frequencies below approximately 15 kHz.
+    audio = low_pass_filter(
+        audio,
+        cutoff=15000,
+        sample_rate=channel_rate,
+        num_taps=201
+    )
+
+    # Reduce 240 kHz to 48 kHz.
+    audio = audio[::5]
+
+    # Apply U.S. broadcast-FM de-emphasis.
+    audio = fm_deemphasis(audio, audio_rate)
+
+    save_wav("radio.wav", audio)
 
     print("Saved audio to radio.wav")
-
 
 if __name__ == "__main__":
     main()
