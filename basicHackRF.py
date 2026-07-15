@@ -32,6 +32,7 @@ class HackRF:
 
         try:
             self.sdr = pyhackrf.pyhackrf_open()
+            self.sdr.pyhackrf_set_antenna_enable(False)
             print("Connected!")
         except Exception as e:
             print(e)
@@ -125,4 +126,4 @@ class HackRF:
             RF_amplify_enable (bool): True to enable the RF amplifier, False to disable it.
         """
         self.RF_amplify_enable = RF_amplify_enable
-        self.sdr.pyhackrf_set_antenna_enable(RF_amplify_enable)
+        self.sdr.pyhackrf_set_amp_enable(RF_amplify_enable)
