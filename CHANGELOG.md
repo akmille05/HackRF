@@ -47,6 +47,8 @@ This is where will will store what changes we made so we can keep eachother in t
 ### Added
 - created rf-analyst.md (agent to create agentic workflow)
 
-
+### Changed 
+- added agent component to markdown file (rf-analyst.agent.md)
+- fixed build.yml to run tests on other created files
 
 

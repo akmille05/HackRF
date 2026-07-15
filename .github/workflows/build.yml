@@ -29,3 +29,5 @@ jobs:
           python -m py_compile "basicHackRF.py"
           python -m unittest discover -s . -p "testhackrf.py"
           python -m py_compile "signal_processing.py"
+          python -m py_compile "cline_interaction.py"
+          python -m py_compile "tuneHackRF.py"
