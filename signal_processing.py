@@ -24,8 +24,8 @@ class Signal:
         hackrf.devInfo()
         self.iq_samples = hackrf.receiveSamples(262144)
 
-    def recieveSamples(self, sample_number):
-        return self.sample_number
+    def recieveSamples(self):
+        return self.iq_samples
     
     def setSamp_num(self, sample_number):
         self.iq_samples = sample_number
@@ -178,4 +178,10 @@ class Signal:
         """
         # Placeholder for IQ processing implementation
 
-        return self.iq_samples
+        self.signal_processing()
+
+        iq = np.asarray(self.iq_samples)
+
+        iq = iq - np.mean(iq)
+
+        return iq
