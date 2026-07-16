@@ -7,6 +7,8 @@ def main():
     """ 
     fft = Signal()
 
+    iq_samples = fft.iq_samples()
+
     print("Fast Fourier Transform:", fft.FFT(iq_samples, 10e6))
     print("Filter:", fft.filter(iq_samples, 10e6, 150))
     print("Demodulator:", fft.demodulate(iq_samples, "FM"))
