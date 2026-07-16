@@ -51,4 +51,14 @@ This is where will will store what changes we made so we can keep eachother in t
 - added agent component to markdown file (rf-analyst.agent.md)
 - fixed build.yml to run tests on other created files
 
+### Added
+- captured_iq.npy
+- iq_samples.png
+- station_spectrum.png
+- waterfall.png
+
+### Changed 
+- tuneHackRF.py
+- Edited README with these changes
+
 
