@@ -45,7 +45,7 @@ class Signal:
         return frequencies, power, fft
 
     def filter(self, data, sample_rate, filter_type,
-           cutoff=None, low_cutoff=None, high_cutoff=None):
+        cutoff=None, low_cutoff=None, high_cutoff=None):
 
         fft_data = np.fft.fftshift(np.fft.fft(data))
 
@@ -65,7 +65,8 @@ class Signal:
 
         elif filter_type == "bandpass":
             if low_cutoff is None or high_cutoff is None:
-                raise ValueError("Band-pass filter requires high and low cutoffs.")
+                raise ValueError("Band-pass filter requires high and" \
+                "    low cutoffs.")
             mask = (
                 (np.abs(frequencies) >= low_cutoff) &
                 (np.abs(frequencies) <= high_cutoff)
