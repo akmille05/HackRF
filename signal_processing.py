@@ -24,8 +24,8 @@ class Signal:
         hackrf.devInfo()
         self.iq_samples = hackrf.receiveSamples(262144)
 
-    def recieveSamples(self, sample_number):
-        return self.sample_number
+    def recieveSamples(self):
+        return self.iq_samples
     
     def setSamp_num(self, sample_number):
         self.iq_samples = sample_number
@@ -45,7 +45,7 @@ class Signal:
         return frequencies, power, fft
 
     def filter(self, data, sample_rate, filter_type,
-           cutoff=None, low_cutoff=None, high_cutoff=None):
+        cutoff=None, low_cutoff=None, high_cutoff=None):
 
         fft_data = np.fft.fftshift(np.fft.fft(data))
 
@@ -65,7 +65,8 @@ class Signal:
 
         elif filter_type == "bandpass":
             if low_cutoff is None or high_cutoff is None:
-                raise ValueError("Band-pass filter requires high and low cutoffs.")
+                raise ValueError("Band-pass filter requires high and" \
+                "    low cutoffs.")
             mask = (
                 (np.abs(frequencies) >= low_cutoff) &
                 (np.abs(frequencies) <= high_cutoff)
@@ -178,4 +179,10 @@ class Signal:
         """
         # Placeholder for IQ processing implementation
 
-        return self.iq_samples
+        self.signal_processing()
+
+        iq = np.asarray(self.iq_samples)
+
+        iq = iq - np.mean(iq)
+
+        return iq

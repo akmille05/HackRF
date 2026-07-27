@@ -36,7 +36,12 @@ The program connects to a HackRF device, captures IQ samples, performs signal pr
 ├── script_basicHackRF.py # Runs basicHackRF.py
 ├── script_signal_processing.py  # Runs signal_processing.py
 ├── radio.wav             # Generated audio
-├── Proj1.py              # Initial tester file for project
+├── Proj1.py
+├── pysdr_web_code.py     # Pysdr reference code
+├── station_spectrum.png
+├── waterfall.png
+├── captured_iq.npy
+├── iq_samples.png
 ├── CHANGELOG.md          # Log for all changes
 └── README.md
 ```
