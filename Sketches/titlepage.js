@@ -23,17 +23,14 @@ function draw() {
 
     background(35);
 
-    // Orange top stripe
     noStroke();
     fill(255,140,0);
     rect(width/2,60,width,120);
 
-    // Dashboard title
     fill(255);
     textSize(42);
     text("HackRF Capability Dashboard", width/2,60);
 
-    // Draw cards
     for(let p of projects){
         p.show();
     }
