@@ -11,15 +11,11 @@ import time
 import numpy as np
 import wave
 
-recording_time = 10          # seconds
-station_freq = 103700000    # Desired FM station frequency in Hz
-center_freq = station_freq + 200000        # Tune HackRF 200 kHz above station
 sample_rate = 2400000        # 2.4 MHz
 audio_rate = 48000           # WAV audio sample rate
 decimation = 50              # 2,400,000 / 48,000 = 50
 
-num_samples = int(recording_time * sample_rate)
-samples = np.zeros(num_samples, dtype=np.complex64)
+samples = None
 last_idx = 0
 
 
@@ -133,12 +129,18 @@ def shift_frequency(iq_samples, frequency_shift, sample_rate):
 
     return iq_samples * oscillator
 
-def main():
+def main(station_freq_mhz=103.7, recording_time=10):
     global samples, last_idx
 
     pyhackrf.pyhackrf_init()
 
     sdr = HackRF()
+
+    station_freq = int(station_freq_mhz * 1_000_000)    # Desired FM station frequency in Hz
+    center_freq = station_freq + 200000        # Tune HackRF 200 kHz above station
+    num_samples = int(recording_time * sample_rate)
+    samples = np.zeros(num_samples, dtype=np.complex64)
+    last_idx = 0
 
     sdr.setFrequency(center_freq)
     sdr.setSampleRate(sample_rate)
