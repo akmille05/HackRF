@@ -1,3 +1,4 @@
+import json
 from python_hackrf import pyhackrf
 pyhackrf.pyhackrf_init()
 
@@ -53,6 +54,7 @@ class HackRF:
         self.model_name = model_name
         self.version = version
         self.serial = serial
+        self.save_json()
 
         
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
@@ -87,6 +89,7 @@ class HackRF:
         """
         self.frequency = frequency ## chnages the python variable but not the hackrf frequency
         self.sdr.pyhackrf_set_freq(frequency) # actually changes the hackrf frequency
+        self.save_json()
 
     def getSampleRate(self):
         """
@@ -107,6 +110,7 @@ class HackRF:
         """
         self.sample_rate = sample_rate # changes the python variable but not the hackrf sample rate
         self.sdr.pyhackrf_set_sample_rate(sample_rate) #actually changes the hackrf sample rate
+        self.save_json()
 
     def getRF_amplify_enable(self):
         """
@@ -127,3 +131,28 @@ class HackRF:
         """
         self.RF_amplify_enable = RF_amplify_enable
         self.sdr.pyhackrf_set_amp_enable(RF_amplify_enable)
+        self.save_json()
+
+    def to_dict(self):
+        """
+        Convert the HackRF object's data into a dictionary.
+        """
+
+        return {
+            "frequency": self.frequency,
+            "sample_rate": self.sample_rate,
+            "rf_amplify_enable": self.RF_amplify_enable,
+            "board_ID": getattr(self, "board_ID", None),
+            "model_name": getattr(self, "model_name", None),
+            "version": getattr(self, "version", None),
+            "serial": getattr(self, "serial", None)
+        }
+    
+    
+    def save_json(self, filename="hackrf_data.json"):
+        """
+        Save the HackRF information to a JSON file.
+        """
+
+        with open(filename, "w") as outfile:
+            json.dump(self.to_dict(), outfile, indent=4)
