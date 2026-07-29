@@ -1,3 +1,5 @@
+
+
 let projects = [];
 
 function setup() {
@@ -106,7 +108,8 @@ function drawSettings(){
 function mousePressed(){
 
     if(projects[0].hovered()){
-        console.log("Basic selected");
+        window.location.href = "Sketches/basic.html";
+
     }
 
     if(projects[1].hovered()){

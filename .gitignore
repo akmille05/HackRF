@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+captured_iq.npy
+*.wav
+
+station_spectrum.png
