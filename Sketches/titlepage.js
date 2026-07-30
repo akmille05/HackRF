@@ -114,6 +114,7 @@ function mousePressed(){
 
     if(projects[1].hovered()){
         console.log("TPMS selected");
+        window.location.href = "Sketches/automotive_tpms.html";
     }
 
     if(projects[2].hovered()){
