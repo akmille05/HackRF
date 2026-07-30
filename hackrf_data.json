@@ -1,0 +1,9 @@
+{
+    "frequency": 103900000,
+    "sample_rate": 2400000,
+    "rf_amplify_enable": false,
+    "board_ID": null,
+    "model_name": null,
+    "version": null,
+    "serial": null
+}
