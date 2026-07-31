@@ -7,6 +7,15 @@ let lnaSlider;
 let vgaSlider;
 let triggerInput;
 
+//for graph
+let amplitudeHistory = [];
+let maxGraphPoints = 200;
+let graphRunning = false;
+
+// Temporary test value
+let currentAmplitude = 5;
+let lastAmplitudeUpdate = 0;
+let graphUpdateInterval = 100;
 
 
 function setup() {
@@ -35,10 +44,37 @@ function setup() {
 function draw() {
     background(35);
 
+    // Add one simulated amplitude point every 100 milliseconds
+    if (graphRunning &&millis() - lastAmplitudeUpdate >= graphUpdateInterval) {
+        currentAmplitude = 5 + random(-0.15, 0.15);
+
+        // Occasionally create a fake RF spike
+        if (random() < 0.05) {
+            currentAmplitude += random(2, 4);
+        }
+
+        addAmplitudePoint(currentAmplitude);
+
+        lastAmplitudeUpdate = millis();
+    }
     drawHeader();
     drawRightPanel();
     drawLeftPanel();
     drawHomeButton();
+}
+
+function addAmplitudePoint(amplitude) {
+    let numericAmplitude = Number(amplitude);
+
+    if (!Number.isFinite(numericAmplitude)) {
+        return;
+    }
+
+    amplitudeHistory.push(numericAmplitude);
+
+    if (amplitudeHistory.length > maxGraphPoints) {
+        amplitudeHistory.shift();
+    }
 }
 
 //HEADER
@@ -72,13 +108,56 @@ function drawHomeButton(){
 
 //BACK TO HOME PAGE IF HOME BUTTON IS CLICKED
 function mousePressed(){
-
+    //home button
     if(mouseX >= 20 &&
        mouseX <= 140 &&
        mouseY >= 20 &&
        mouseY <= 65){
 
         window.location.href = "../ui.html";
+    }
+
+    //start/stop button
+    let x = width * 0.60;
+    let y = 120;
+    let w = width * 0.35;
+    let h = height * 0.74;
+
+    let buttonX = x + w / 11;
+    let buttonY = h + y - 90;
+    let buttonW = 180;
+    let buttonH = 50;
+
+    // Start/stop button click
+    if (
+        mouseX >= buttonX &&
+        mouseX <= buttonX + buttonW &&
+        mouseY >= buttonY &&
+        mouseY <= buttonY + buttonH
+    ) {
+        graphRunning = !graphRunning;
+
+        // Prevent an old timer value from causing an immediate update
+        lastAmplitudeUpdate = millis();
+    }
+
+    // Clear button dimensions
+    let clearButtonX = buttonX + 200;
+    let clearButtonY = buttonY;
+    let clearButtonW = 180;
+    let clearButtonH = 50;
+
+    // Clear graph
+    if (
+        mouseX >= clearButtonX &&
+        mouseX <= clearButtonX + clearButtonW &&
+        mouseY >= clearButtonY &&
+        mouseY <= clearButtonY + clearButtonH
+    ) {
+        amplitudeHistory = [];
+        currentAmplitude = 5;
+        lastAmplitudeUpdate = millis();
+        return;
     }
 
 }
@@ -158,17 +237,63 @@ function drawRightPanel(){
     // Start Button
     //------------------------------------
 
-    fill(255,140,0);
+    let buttonX = x + w / 11;
+    let buttonY = y + h - 90;
+    let buttonW = 180;
+    let buttonH = 50;
 
-    rect(x+w/3.25,h+y-90,180,50,10);
+    fill(255, 140, 0);
+    rect(buttonX, buttonY, buttonW, buttonH, 10);
 
     fill(255);
-
-    textAlign(CENTER,CENTER);
-
+    textAlign(CENTER, CENTER);
     textSize(20);
 
-    text("START",x+w/2,h+y-65);
+    if (graphRunning) {
+        text(
+            "STOP",
+            buttonX + buttonW / 2,
+            buttonY + buttonH / 2
+        );
+    } else {
+        text(
+            "START",
+            buttonX + buttonW / 2,
+            buttonY + buttonH / 2
+        );
+    }
+
+    //------------------------------------
+    //Clear Button
+    //------------------------------------
+
+    let clearButtonX = buttonX + 200;
+    let clearButtonY = buttonY;
+    let clearButtonW = 180;
+    let clearButtonH = 50;
+
+    fill(55);
+    stroke(255, 140, 0);
+    strokeWeight(2);
+
+    rect(
+        clearButtonX,
+        clearButtonY,
+        clearButtonW,
+        clearButtonH,
+        10
+    );
+
+    noStroke();
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(18);
+
+    text(
+        "CLEAR GRAPH",
+        clearButtonX + clearButtonW / 2,
+        clearButtonY + clearButtonH / 2
+    );
 }
 
 //INPUTS
@@ -188,6 +313,7 @@ function drawInput(x,y,w,h,value){
     textAlign(LEFT,CENTER);
 
     text(value,x+10,y+h/2);
+
 }
 
 
@@ -224,6 +350,106 @@ function drawLeftPanel(){
     stroke(255,140,0);
     strokeWeight(2);
     line(x+20,y+300,x+w-20,y+300);
-    line(x+360,y+60,x+360,y+h-170);
+    //line(x+360,y+60,x+360,y+h-170);
 
+    let graphX = x + 60;
+    let graphY = y + 70;
+    let graphW = w - 100;
+    let graphH = 200;
+
+    drawAmplitudeGraph(graphX, graphY, graphW, graphH);
+
+}
+
+//DRAW GRAPH
+function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
+    // Graph background
+    stroke(255, 140, 0);
+    strokeWeight(1);
+    fill(35);
+    rect(graphX, graphY, graphW, graphH);
+
+    // Horizontal grid lines
+    stroke(90);
+    strokeWeight(1);
+
+    for (let i = 0; i <= 4; i++) {
+        let lineY = graphY + (graphH / 4) * i;
+        line(graphX, lineY, graphX + graphW, lineY);
+    }
+
+    // Vertical grid lines
+    for (let i = 0; i <= 5; i++) {
+        let lineX = graphX + (graphW / 5) * i;
+        line(lineX, graphY, lineX, graphY + graphH);
+    }
+
+    // Axis labels
+    noStroke();
+    fill(200);
+    textSize(12);
+
+    textAlign(CENTER, TOP);
+    text("Time", graphX + graphW / 2, graphY + graphH + 8);
+
+    push();
+    translate(graphX - 30, graphY + graphH / 2);
+    rotate(-HALF_PI);
+    textAlign(CENTER, CENTER);
+    text("Amplitude", 0, 0);
+    pop();
+
+    if (amplitudeHistory.length < 2) {
+        return;
+    }
+
+    // Choose the visible amplitude range
+    let minimumAmplitude = 0;
+    let maximumAmplitude = 10;
+
+    // Draw amplitude line
+    noFill();
+    stroke(255, 140, 0);
+    strokeWeight(2);
+
+    beginShape();
+
+    for (let i = 0; i < amplitudeHistory.length; i++) {
+        let pointX = map(
+            i,
+            0,
+            maxGraphPoints - 1,
+            graphX,
+            graphX + graphW
+        );
+
+        let pointY = map(
+            amplitudeHistory[i],
+            minimumAmplitude,
+            maximumAmplitude,
+            graphY + graphH,
+            graphY
+        );
+
+        pointY = constrain(pointY, graphY, graphY + graphH);
+
+        vertex(pointX, pointY);
+    }
+
+    endShape();
+
+    // Display latest amplitude
+    noStroke();
+    fill(255);
+    textAlign(RIGHT, TOP);
+    textSize(13);
+
+    let latestAmplitude =
+        amplitudeHistory[amplitudeHistory.length - 1];
+
+    text(
+        `Current Amplitude: ${latestAmplitude.toFixed(2)}`,
+        graphX + graphW - 8,
+        graphY + 8
+    );
 }
