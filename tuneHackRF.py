@@ -7,7 +7,9 @@ FM demodulates them, and saves the result as a WAV file.
 
 from python_hackrf import pyhackrf
 from basicHackRF import HackRF
+from signal_processing import Signal
 import time
+import matplotlib.pyplot as plt
 import numpy as np
 import wave
 
@@ -47,7 +49,7 @@ class Tune:
         FM demodulate complex IQ samples.
         """
 
-        return np.angle(iq_samples[1:] * np.conj(iq_samples[:-1]))
+        return Signal.demodulate(iq_samples, "FM")
 
 
     def fm_deemphasis(audio, sample_rate=48000, tau=75e-6):
@@ -175,9 +177,6 @@ class Tune:
 
         print("Samples recorded:", len(samples))
 
-
-        import matplotlib.pyplot as plt
-
         # Save the captured IQ data for debugging.
         np.save("captured_iq.npy", samples)
 
@@ -211,14 +210,14 @@ class Tune:
         frequency_offset = station_freq - center_freq
 
         # Move the desired station to the center of the IQ recording.
-        samples = shift_frequency(
+        samples = Tune.shift_frequency(
             samples,
             frequency_offset,
             sample_rate
         )
 
         # Isolate one broadcast-FM channel.
-        channel_iq = low_pass_filter(
+        channel_iq = Tune.low_pass_filter(
             samples,
             cutoff=100000,       # Keep about ±100 kHz around the station
             sample_rate=sample_rate,
@@ -230,10 +229,10 @@ class Tune:
         channel_rate = 240000
 
         # FM-demodulate only the isolated station.
-        audio = demodulate_fm(channel_iq)
+        audio = Tune.demodulate_fm(channel_iq)
 
         # Keep audible mono frequencies below approximately 15 kHz.
-        audio = low_pass_filter(
+        audio = Tune.low_pass_filter(
             audio,
             cutoff=15000,
             sample_rate=channel_rate,
@@ -244,9 +243,9 @@ class Tune:
         audio = audio[::5]
 
         # Apply U.S. broadcast-FM de-emphasis.
-        audio = fm_deemphasis(audio, audio_rate)
+        audio = Tune.fm_deemphasis(audio, audio_rate)
 
-        save_wav("radio.wav", audio)
+        Tune.save_wav("radio.wav", audio)
 
         print("Saved audio to radio.wav")
 

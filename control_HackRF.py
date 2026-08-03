@@ -1,7 +1,6 @@
 from basicHackRF import HackRF
 from signal_processing import Signal
 from tuneHackRF import Tune
-import wave
 
 
 hackrf = HackRF()

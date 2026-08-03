@@ -186,3 +186,18 @@ class Signal:
         iq = iq - np.mean(iq)
 
         return iq
+    
+    def fm_deemphasis(audio, sample_rate=48000, tau=75e-6):
+        """
+        Apply FM de-emphasis for U.S. broadcast FM.
+        """
+
+        dt = 1.0 / sample_rate
+        alpha = dt / (tau + dt)
+
+        output = np.zeros_like(audio)
+
+        for i in range(1, len(audio)):
+            output[i] = output[i - 1] + alpha * (audio[i] - output[i - 1])
+
+        return output
