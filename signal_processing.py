@@ -13,18 +13,18 @@ from basicHackRF import HackRF
 
 class Signal:
 
-    iq_samples: int
+    def __init__(self):
+        self.hackrf = HackRF()
+        self.iq_samples = None
 
     def signal_processing(self):
-        hackrf = HackRF()
 
-        hackrf.setFrequency(100e6)
-        hackrf.setSampleRate(10e6)
+        self.hackrf.setFrequency(100e6)
+        self.hackrf.setSampleRate(10e6)
 
-        hackrf.devInfo()
-        self.iq_samples = hackrf.receiveSamples(262144)
+        print(self.hackrf.devInfo())
+        self.iq_samples = self.hackrf.receiveSamples(262144)
 
-    def recieveSamples(self):
         return self.iq_samples
     
     def setSamp_num(self, sample_number):

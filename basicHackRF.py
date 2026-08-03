@@ -56,7 +56,6 @@ class HackRF:
         self.serial = serial
         self.save_json()
 
-        
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
         return line
         
