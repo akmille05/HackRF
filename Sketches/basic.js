@@ -20,6 +20,85 @@ let selectedDemod = null;
 let leftArrowHover = false;
 let rightArrowHover = false;
 
+let hackrfData = {
+    frequency: "",
+    sample_rate: ""
+};
+
+//---------------------------------------
+// Test spectrum data
+//---------------------------------------
+
+let testSpectrums = {};
+let numSpectrumPoints = 160;
+
+function generateTestSpectrums() {
+    testSpectrums["Original"] = generateSpectrumSignal(0.5, 35, 8);
+    testSpectrums["Strong Signal"] = generateSpectrumSignal(0.3, 55, 5);
+    testSpectrums["Noisy Band"] = generateSpectrumSignal(0.65, 18, 22);
+
+    spectrumNames = Object.keys(testSpectrums);
+}
+
+// Generates a fake "spectrum" as a peak (at peakPos, 0-1 across the width)
+// plus random noise, so toggling FFT/Filter/Amplify visibly changes the shape.
+function generateSpectrumSignal(peakPos, peakHeight, noiseLevel) {
+    let data = [];
+
+    for (let i = 0; i < numSpectrumPoints; i++) {
+        let t = i / numSpectrumPoints;
+        let d = t - peakPos;
+        let peak = peakHeight * Math.exp(-(d * d) / 0.01);
+        let noise = random(-noiseLevel, noiseLevel);
+
+        data.push(peak + noise);
+    }
+
+    return data;
+}
+
+// Applies the current toggle states to a spectrum array for display.
+function applyProcessing(data) {
+    let result = data.slice();
+
+    // FFT: rectify (simple stand-in for a magnitude spectrum)
+    if (fftEnabled) {
+        result = result.map(v => Math.abs(v));
+    }
+
+    // Filter: moving-average smoothing (simple stand-in for a low-pass filter)
+    if (filterEnabled) {
+        let windowSize = 5;
+        let smoothed = [];
+
+        for (let i = 0; i < result.length; i++) {
+            let sum = 0;
+            let count = 0;
+
+            for (let j = -windowSize; j <= windowSize; j++) {
+                let idx = i + j;
+
+                if (idx >= 0 && idx < result.length) {
+                    sum += result[idx];
+                    count++;
+                }
+            }
+
+            smoothed.push(sum / count);
+        }
+
+        result = smoothed;
+    }
+
+    // Amplify: scale the amplitude up
+    if (amplifyEnabled) {
+        result = result.map(v => v * 1.8);
+    }
+
+    return result;
+}
+
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
 
@@ -32,13 +111,9 @@ function setup() {
     sampleRateInput = createInput("");
     cutoffInput = createInput("");
 
-    // Optional placeholders
-    frequencyInput.attribute("placeholder", "e.g. 100000000");
-    durationInput.attribute("placeholder", "Seconds");
-    sampleRateInput.attribute("placeholder", "e.g. 10000000");
-    cutoffInput.attribute("placeholder", "Hz");
+    loadHackRFData();
+    generateTestSpectrums();
 
-    // Style them to match your theme
     let inputs = [
         frequencyInput,
         durationInput,
@@ -53,6 +128,19 @@ function setup() {
         input.style("border-radius", "8px");
         input.style("padding", "6px");
         input.style("font-size", "16px");
+    }
+}
+
+async function loadHackRFData() {
+    try {
+        const response = await fetch("hackrf_data.json");
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        hackrfData = await response.json();
+        console.log("Loaded:", hackrfData);
+    } catch (err) {
+        console.error("Failed to load hackrf_data.json:", err);
     }
 }
 
@@ -95,19 +183,23 @@ function drawSpectrumViewer(){
     text("Spectrum Viewer",x+w/2,y+25);
 
     //---------------------------------------
-    // Placeholder spectrum
+    // Test spectrum (reacts to toggles)
     //---------------------------------------
 
     stroke(255,140,0);
+    strokeWeight(2);
     noFill();
+
+    let rawData = testSpectrums[spectrumNames[spectrumIndex]];
+    let data = applyProcessing(rawData);
 
     beginShape();
 
-    for(let i=0;i<w-40;i+=5){
+    for (let i = 0; i < data.length; i++) {
+        let px = x + 20 + (i / (data.length - 1)) * (w - 40);
+        let py = y + h/2 - data[i] * 2.2;
 
-        let yy = y+h/2 + sin(i*0.04)*40 + random(-8,8);
-
-        vertex(x+20+i,yy);
+        vertex(px, py);
     }
 
     endShape();
@@ -191,30 +283,33 @@ function drawArrowButton(x, y, direction) {
     }
 }
 
-function drawRadioButton(x, y, label) {
+// Toggle-style button for the demodulator (FM / AM)
+function drawDemodToggle(x, y, w, h, label, active) {
 
-    // Is the mouse hovering over this button?
-    let hovering = dist(mouseX, mouseY, x, y) < 9;
+    let hovering =
+        mouseX >= x &&
+        mouseX <= x + w &&
+        mouseY >= y &&
+        mouseY <= y + h;
 
-    // Outer circle
-    stroke(255, 140, 0);
+    stroke(255,140,0);
     strokeWeight(2);
-    fill(35);
-    circle(x, y, 18);
 
-    // Fill orange if hovering OR selected
-    if (hovering || selectedDemod === label) {
-        noStroke();
-        fill(255, 140, 0);
-        circle(x, y, 10);
+    if (active) {
+        fill(255,140,0);
+    } else if (hovering) {
+        fill(80);
+    } else {
+        fill(50);
     }
 
-    // Label
+    rect(x, y, w, h, 10);
+
     noStroke();
-    fill(255);
-    textAlign(LEFT, CENTER);
-    textSize(20);
-    text(label, x + 20, y);
+    fill(active ? 35 : 255);
+    textAlign(CENTER, CENTER);
+    textSize(18);
+    text(label + (active ? "   \u25CF ON" : "   \u25CB OFF"), x + w/2, y + h/2);
 }
 
 function drawDemodulator(){
@@ -237,8 +332,48 @@ function drawDemodulator(){
 
     textSize(20);
 
-    drawRadioButton(x + 60, y + 80, "FM");
-    drawRadioButton(x + 60, y + 120, "AM");
+    let btnW = w - 80;
+    let btnH = 45;
+
+    drawDemodToggle(x + 40, y + 65, btnW, btnH, "FM", selectedDemod === "FM");
+    drawDemodToggle(x + 40, y + 125, btnW, btnH, "AM", selectedDemod === "AM");
+}
+
+// Toggle switch for the settings panel (FFT / Filter / Amplify)
+function drawToggleSwitch(x, y, checked, label) {
+
+    let toggleW = 46;
+    let toggleH = 24;
+
+    let hovering =
+        mouseX >= x &&
+        mouseX <= x + toggleW &&
+        mouseY >= y &&
+        mouseY <= y + toggleH;
+
+    noStroke();
+
+    if (checked) {
+        fill(255,140,0);
+    } else if (hovering) {
+        fill(90);
+    } else {
+        fill(60);
+    }
+
+    rect(x, y, toggleW, toggleH, toggleH/2);
+
+    // Knob
+    fill(255);
+    let knobD = toggleH - 6;
+    let knobX = checked ? x + toggleW - knobD - 3 : x + 3;
+    circle(knobX + knobD/2, y + toggleH/2, knobD);
+
+    // Label + ON/OFF state
+    fill(255);
+    textAlign(LEFT, CENTER);
+    textSize(18);
+    text(label + (checked ? "  (ON)" : "  (OFF)"), x + toggleW + 15, y + toggleH/2);
 }
 
 function drawSettingsPanel(){
@@ -258,7 +393,7 @@ function drawSettingsPanel(){
 
     fill(255);
     textSize(30);
-    text("Settings",x+w/2,y+30);
+    text("Settings",x+w/2,y+40);
 
     textAlign(LEFT,CENTER);
 
@@ -270,35 +405,42 @@ function drawSettingsPanel(){
     textSize(18);
 
     //------------------------------------
-    // Frequency
+    // Info: frequency, sample rate, active toggles
     //------------------------------------
 
-    text("Frequency (Hz)",left,y+90);
+    text(
+        "Frequency: " + (103700000 / 1e6).toFixed(1) + " MHz",
+        left,
+        y + 90
+    );
 
-    frequencyInput.position(inputX, y + 75);
-    frequencyInput.size(220, 35);
+    text(
+        "Sample Rate: " + (2400000 / 1e6).toFixed(1) + " MS/s",
+        left,
+        y + 120
+    );
 
-    //------------------------------------
-    // Duration
-    //------------------------------------
+    let activeToggles = [];
+    if (fftEnabled) activeToggles.push("FFT");
+    if (filterEnabled) activeToggles.push("Filter");
+    if (amplifyEnabled) activeToggles.push("Amplify");
 
-    text("Duration",left,y+150);
-
-    durationInput.position(inputX, y + 135);
-    durationInput.size(220, 35);
+    text(
+        "Active: " + (activeToggles.length ? activeToggles.join(", ") : "None"),
+        left,
+        y + 150
+    );
 
     //------------------------------------
     // FFT
     //------------------------------------
 
-    drawCheckbox(left,y+210,fftEnabled);
-
-    text("Apply FFT",left+40,y+220);
+    drawToggleSwitch(left, y+205, fftEnabled, "Apply FFT");
 
     if (fftEnabled) {
-    sampleRateInput.show();
-    sampleRateInput.position(inputX, y + 265);
-    sampleRateInput.size(220, 35);
+        sampleRateInput.show();
+        sampleRateInput.position(inputX, y + 265);
+        sampleRateInput.size(220, 35);
     } else {
         sampleRateInput.hide();
     }
@@ -307,22 +449,18 @@ function drawSettingsPanel(){
     // Amplify
     //------------------------------------
 
-    drawCheckbox(left,y+340,amplifyEnabled);
-
-    text("Amplify (+5 MHz)",left+40,y+350);
+    drawToggleSwitch(left, y+335, amplifyEnabled, "Amplify (+5 MHz)");
 
     //------------------------------------
     // Filter
     //------------------------------------
 
-    drawCheckbox(left,y+410,filterEnabled);
-
-    text("Apply Filter",left+40,y+420);
+    drawToggleSwitch(left, y+405, filterEnabled, "Apply Filter");
 
     if (filterEnabled) {
-    cutoffInput.show();
-    cutoffInput.position(inputX, y + 475);
-    cutoffInput.size(220, 35);
+        cutoffInput.show();
+        cutoffInput.position(inputX, y + 475);
+        cutoffInput.size(220, 35);
     } else {
         cutoffInput.hide();
     }
@@ -342,57 +480,6 @@ function drawSettingsPanel(){
     textSize(20);
 
     text("Run Capture",x+130,h+y-65);
-}
-
-// function drawInput(x,y,w,h,value){
-
-//     stroke(255,140,0);
-//     strokeWeight(2);
-
-//     fill(35);
-
-//     rect(x,y,w,h,8);
-
-//     noStroke();
-
-//     fill(200);
-
-//     textAlign(LEFT,CENTER);
-
-//     text(value,x+10,y+h/2);
-// }
-
-function drawCheckbox(x,y,checked){
-
-
-    let hovering = 
-        mouseX >= x &&
-        mouseX <= x + 22 &&
-        mouseY >= y &&
-        mouseY <= y + 22;
-
-    stroke(255,140,0);
-    strokeWeight(2);
-
-    // Fill orange if enabled OR hovering
-    if (checked || hovering) {
-        fill(255,140,0);
-    } 
-    else {
-        fill(35);
-    }
-
-    rect(x,y,22,22,4);
-
-    // Draw checkmark
-    if (checked) {
-
-        stroke(35); // dark checkmark on orange background
-        strokeWeight(3);
-
-        line(x+4,y+11,x+9,y+17);
-        line(x+9,y+17,x+18,y+4);
-    }
 }
 
 function windowResized(){
@@ -428,88 +515,104 @@ function mousePressed(){
         window.location.href = "../ui.html";
     }
 
+    //------------------------------------
+    // Run Capture button (fixed: was
+    // referencing undefined x/y/h, which
+    // threw an error and blocked every
+    // click handler below it)
+    //------------------------------------
+
+    let settingsX = width * 0.50;
+    let settingsY = 120;
+    let settingsW = width * 0.46;
+    let settingsH = height * 0.74;
+
     if (
-        mouseX >= x + 40 &&
-        mouseX <= x + 220 &&
-        mouseY >= y + h - 90 &&
-        mouseY <= y + h - 40
+        mouseX >= settingsX + 40 &&
+        mouseX <= settingsX + 220 &&
+        mouseY >= settingsH + settingsY - 90 &&
+        mouseY <= settingsH + settingsY - 40
     ) {
         console.log("Frequency:", frequencyInput.value());
         console.log("Duration:", durationInput.value());
     }
 
+    //------------------------------------
+    // Demodulator toggle buttons
+    //------------------------------------
+
     let demodX = 40;
     let demodY = height * 0.64;
+    let demodW = width * 0.42;
 
-    // if (dist(mouseX, mouseY, demodX + 60, demodY + 80) < 9) {
-    //     selectedDemod = "FM";
-    // }
+    let btnW = demodW - 80;
+    let btnH = 45;
+    let fmY = demodY + 65;
+    let amY = demodY + 125;
 
-    // if (dist(mouseX, mouseY, demodX + 60, demodY + 120) < 9) {
-    //     selectedDemod = "AM";
-    // }
-
-        // FM
-    if (dist(mouseX, mouseY, demodX + 60, demodY + 80) < 9) {
-
-        if (selectedDemod === "FM") {
-            selectedDemod = null;      // Turn it off
-        } else {
-            selectedDemod = "FM";      // Turn it on
-        }
-
+    // FM
+    if (
+        mouseX >= demodX + 40 &&
+        mouseX <= demodX + 40 + btnW &&
+        mouseY >= fmY &&
+        mouseY <= fmY + btnH
+    ) {
+        selectedDemod = (selectedDemod === "FM") ? null : "FM";
         console.log(selectedDemod);
     }
 
     // AM
-    if (dist(mouseX, mouseY, demodX + 60, demodY + 120) < 9) {
-
-        if (selectedDemod === "AM") {
-            selectedDemod = null;
-        } else {
-            selectedDemod = "AM";
-        }
-
+    if (
+        mouseX >= demodX + 40 &&
+        mouseX <= demodX + 40 + btnW &&
+        mouseY >= amY &&
+        mouseY <= amY + btnH
+    ) {
+        selectedDemod = (selectedDemod === "AM") ? null : "AM";
         console.log(selectedDemod);
     }
 
-    let settingsX = width * 0.50;
-    let settingsY = 120;
+    //------------------------------------
+    // Settings toggle switches
+    //------------------------------------
 
-    let checkboxX = settingsX + 40;
+    let toggleX = settingsX + 40;
+    let toggleW = 46;
+    let toggleH = 24;
 
-
-    // FFT checkbox
+    // FFT toggle
     if (
-        mouseX >= checkboxX &&
-        mouseX <= checkboxX + 22 &&
-        mouseY >= settingsY + 210 &&
-        mouseY <= settingsY + 232
+        mouseX >= toggleX &&
+        mouseX <= toggleX + toggleW &&
+        mouseY >= settingsY + 205 &&
+        mouseY <= settingsY + 205 + toggleH
     ) {
         fftEnabled = !fftEnabled;
     }
 
-
-    // Amplify checkbox
+    // Amplify toggle
     if (
-        mouseX >= checkboxX &&
-        mouseX <= checkboxX + 22 &&
-        mouseY >= settingsY + 340 &&
-        mouseY <= settingsY + 362
+        mouseX >= toggleX &&
+        mouseX <= toggleX + toggleW &&
+        mouseY >= settingsY + 335 &&
+        mouseY <= settingsY + 335 + toggleH
     ) {
         amplifyEnabled = !amplifyEnabled;
     }
 
-
-    // Filter checkbox
+    // Filter toggle
     if (
-        mouseX >= checkboxX &&
-        mouseX <= checkboxX + 22 &&
-        mouseY >= settingsY + 410 &&
-        mouseY <= settingsY + 432
+        mouseX >= toggleX &&
+        mouseX <= toggleX + toggleW &&
+        mouseY >= settingsY + 405 &&
+        mouseY <= settingsY + 405 + toggleH
     ) {
         filterEnabled = !filterEnabled;
     }
+
+    //------------------------------------
+    // Spectrum arrows
+    //------------------------------------
 
     let spectrumX = 40;
     let spectrumY = 120;
