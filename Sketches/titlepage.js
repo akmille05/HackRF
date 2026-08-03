@@ -19,6 +19,7 @@ function setup() {
     projects.push(new ProjectBox(startX, y, w, h, "Basic"));
     projects.push(new ProjectBox(width/2, y, w, h, "Automotive\nTPMS"));
     projects.push(new ProjectBox(startX + spacing*2, y, w, h, "Radio\nAstronomy"));
+    projects.push(new ProjectBox(width / 2, height / 2 + 210, 220, 60, "Settings"));
 }
 
 function draw() {
@@ -37,7 +38,6 @@ function draw() {
         p.show();
     }
 
-    drawSettings();
 }
 
 class ProjectBox{
@@ -77,33 +77,6 @@ class ProjectBox{
     }
 }
 
-function drawSettings(){
-
-    let x = width/2;
-    let y = height/2 + 210;
-    let w = 220;
-    let h = 60;
-
-    stroke(255,140,0);
-    strokeWeight(3);
-
-    if(mouseX>x-w/2 &&
-       mouseX<x+w/2 &&
-       mouseY>y-h/2 &&
-       mouseY<y+h/2){
-        fill(80);
-    }
-    else{
-        fill(55);
-    }
-
-    rect(x,y,w,h,15);
-
-    noStroke();
-    fill(255);
-    textSize(22);
-    text("Settings",x,y);
-}
 
 function mousePressed(){
 
@@ -119,6 +92,12 @@ function mousePressed(){
 
     if(projects[2].hovered()){
         console.log("Radio Astronomy selected");
+        window.location.href = "Sketches/radio_astronomy.html";
+    }
+
+    if(projects[3].hovered()){
+        console.log("Settings selected");
+        window.location.href = "Sketches/settings.html";
     }
 }
 

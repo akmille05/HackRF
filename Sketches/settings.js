@@ -19,7 +19,7 @@ function drawHeader() {
 
     fill(255);
     textSize(34);
-    text("Radio Astronomy Dashboard", width/2,45);
+    text("Settings", width/2,45);
 }
 function drawHomeButton(){
 
