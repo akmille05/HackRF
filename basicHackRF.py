@@ -56,7 +56,6 @@ class HackRF:
         self.serial = serial
         self.save_json()
 
-        
         line = f"Board ID: {board_ID}, Model: {model_name}, Version: {version}, Serial: {serial}"
         return line
         
@@ -87,8 +86,10 @@ class HackRF:
         Args:
             frequency (int): Desired frequency in Hz.
         """
-        self.frequency = frequency ## chnages the python variable but not the hackrf frequency
-        self.sdr.pyhackrf_set_freq(frequency) # actually changes the hackrf frequency
+        self.frequency = frequency
+
+        if hasattr(self, "sdr"):
+            self.sdr.pyhackrf_set_freq(frequency)
         self.save_json()
 
     def getSampleRate(self):
@@ -108,8 +109,8 @@ class HackRF:
         Args:
             sample_rate (int): Desired sample rate in samples per second.
         """
-        self.sample_rate = sample_rate # changes the python variable but not the hackrf sample rate
-        self.sdr.pyhackrf_set_sample_rate(sample_rate) #actually changes the hackrf sample rate
+        self.sample_rate = sample_rate 
+        self.sdr.pyhackrf_set_sample_rate(sample_rate) 
         self.save_json()
 
     def getRF_amplify_enable(self):
@@ -119,7 +120,6 @@ class HackRF:
         Returns:
             bool: True if the RF amplifier is enabled, False otherwise.
         """
-        #print(self.RF_amplify_enable)
         return self.RF_amplify_enable
 
     def setRF_amplify_enable(self, RF_amplify_enable):
@@ -147,8 +147,7 @@ class HackRF:
             "version": getattr(self, "version", None),
             "serial": getattr(self, "serial", None)
         }
-    
-    
+
     def save_json(self, filename="hackrf_data.json"):
         """
         Save the HackRF information to a JSON file.
@@ -156,3 +155,22 @@ class HackRF:
 
         with open(filename, "w") as outfile:
             json.dump(self.to_dict(), outfile, indent=4)
+
+
+if __name__ == "__main__":
+
+    hackrf = HackRF()
+
+    hackrf.board_ID = 2
+    hackrf.model_name = "HackRF One"
+    hackrf.version = "2024.02.1"
+    hackrf.serial = "123456789"
+
+    hackrf.frequency = 103700000
+    hackrf.sample_rate = 2400000
+    hackrf.RF_amplify_enable = False
+
+    hackrf.save_json()
+
+    print("JSON written!")
+
