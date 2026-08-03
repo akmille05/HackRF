@@ -1,0 +1,9 @@
+{
+    "frequency": 103700000,
+    "sample_rate": 2400000,
+    "rf_amplify_enable": false,
+    "board_ID": 2,
+    "model_name": "HackRF One",
+    "version": "2024.02.1",
+    "serial": "123456789"
+}
