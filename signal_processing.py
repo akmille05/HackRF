@@ -13,18 +13,18 @@ from basicHackRF import HackRF
 
 class Signal:
 
-    iq_samples: int
+    def __init__(self):
+        self.hackrf = HackRF()
+        self.iq_samples = None
 
     def signal_processing(self):
-        hackrf = HackRF()
 
-        hackrf.setFrequency(100e6)
-        hackrf.setSampleRate(10e6)
+        self.hackrf.setFrequency(100e6)
+        self.hackrf.setSampleRate(10e6)
 
-        hackrf.devInfo()
-        self.iq_samples = hackrf.receiveSamples(262144)
+        print(self.hackrf.devInfo())
+        self.iq_samples = self.hackrf.receiveSamples(262144)
 
-    def recieveSamples(self):
         return self.iq_samples
     
     def setSamp_num(self, sample_number):
@@ -186,3 +186,18 @@ class Signal:
         iq = iq - np.mean(iq)
 
         return iq
+    
+    def fm_deemphasis(audio, sample_rate=48000, tau=75e-6):
+        """
+        Apply FM de-emphasis for U.S. broadcast FM.
+        """
+
+        dt = 1.0 / sample_rate
+        alpha = dt / (tau + dt)
+
+        output = np.zeros_like(audio)
+
+        for i in range(1, len(audio)):
+            output[i] = output[i - 1] + alpha * (audio[i] - output[i - 1])
+
+        return output
