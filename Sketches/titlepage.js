@@ -24,7 +24,8 @@ function setup() {
 
 function draw() {
 
-    background(35);
+    updateThemeColors();
+    background(bgColor);
 
     noStroke();
     fill(255,140,0);
@@ -58,23 +59,35 @@ class ProjectBox{
     }
 
     show(){
+stroke(255, 140, 0);
+    strokeWeight(3);
 
-        stroke(255,140,0);
-        strokeWeight(3);
-
-        if(this.hovered()){
+    if (this.hovered()) {
+        if (lightModeOn) {
+            fill(200);
+        } else {
             fill(80);
-        }else{
-            fill(55);
         }
-
-        rect(this.x,this.y,this.w,this.h,20);
-
-        noStroke();
-        fill(255,140,0);
-        textSize(24);
-        text(this.label,this.x,this.y);
+    } else {
+        fill(panelColor);
     }
+
+    rect(this.x, this.y, this.w, this.h, 20);
+
+    noStroke();
+
+    // Keep project labels orange
+    fill(255, 140, 0);
+
+    if (this.h < 100) {
+        textSize(22);
+    } else {
+        textSize(24);
+    }
+
+    textAlign(CENTER, CENTER);
+    text(this.label, this.x, this.y);
+}
 }
 
 

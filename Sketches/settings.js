@@ -1,4 +1,3 @@
-let lightModeOn = false;
 let highContrastOn = false;
 let largeTextOn = false;
 let buttonNoiseOn = false;
@@ -12,11 +11,8 @@ function setup() {
     textFont("Orbitron");
 }
 function draw() {
-    if (lightModeOn) {
-        background(235);
-    } else {
-        background(35);
-    }
+    updateThemeColors();
+    background(bgColor);
 
 
     drawHeader();
@@ -92,7 +88,7 @@ function mousePressed(){
         mouseY >= toggleY &&
         mouseY <= toggleY + toggleH
     ) {
-        lightModeOn = !lightModeOn;
+        saveLightMode(!lightModeOn);
     }
 
 }
@@ -129,8 +125,6 @@ function drawAppearancePanel(){
     let w = width*0.46;
     let h = height*0.3;
 
-    let panelColor;
-    let textColor;
 
     if (lightModeOn) {
         panelColor = color(220);   // light gray panels
