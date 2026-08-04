@@ -183,6 +183,7 @@ function updateInputTheme() {
 function draw() {
     updateThemeColors();
     updateInputTheme();
+    updateFontSizes();
     background(bgColor);
 
     drawHeader();
@@ -199,7 +200,7 @@ function drawHeader() {
     rect(0,0,width,90);
 
     fill(255);
-    textSize(34);
+    textSize(titleSize);
     text("Radio Astronomy Dashboard", width/2,45);
 }
 
@@ -217,7 +218,7 @@ function drawSpectrumViewer(){
 
     fill(textColor);
     noStroke();
-    textSize(24);
+    textSize(headingSize);
     text("Spectrum Viewer",x+w/2,y+25);
 
     //---------------------------------------
@@ -262,7 +263,7 @@ function drawSpectrumViewer(){
     );
 
     fill(textColor);
-    textSize(18);
+    textSize(labelSize);
     text(
         spectrumNames[spectrumIndex],
         x+w/2,
@@ -355,7 +356,7 @@ function drawDemodToggle(x, y, w, h, label, active) {
     }
 
     textAlign(CENTER, CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text(
         label + (active ? "   ● ON" : "   ○ OFF"),
@@ -379,10 +380,10 @@ function drawDemodulator(){
 
     noStroke();
     fill(textColor);
-    textSize(24);
+    textSize(headingSize);
     text("Demodulator",x+w/2,y+25);
 
-    textSize(20);
+    textSize(labelSize);
 
     let btnW = w - 80;
     let btnH = 45;
@@ -424,7 +425,7 @@ function drawToggleSwitch(x, y, checked, label) {
     // Label + ON/OFF state
     fill(textColor);
     textAlign(LEFT, CENTER);
-    textSize(18);
+    textSize(labelSize);
     text(label + (checked ? "  (ON)" : "  (OFF)"), x + toggleW + 15, y + toggleH/2);
 }
 
@@ -444,7 +445,7 @@ function drawSettingsPanel(){
     noStroke();
 
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     text("Settings",x+w/2,y+40);
 
     textAlign(LEFT,CENTER);
@@ -454,7 +455,7 @@ function drawSettingsPanel(){
 
     fill(textColor);
 
-    textSize(18);
+    textSize(labelSize);
 
     //------------------------------------
     // Info: frequency, sample rate, active toggles
@@ -529,7 +530,7 @@ function drawSettingsPanel(){
 
     textAlign(CENTER,CENTER);
 
-    textSize(20);
+    textSize(labelSize);
 
     text("Run Capture",x+130,h+y-65);
 }
@@ -552,7 +553,7 @@ function drawHomeButton(){
     fill(textColor);
 
     textAlign(CENTER,CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text("← Home",80,42);
 }

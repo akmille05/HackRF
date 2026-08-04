@@ -58,6 +58,7 @@ function updateInputTheme() {
 function draw() {
     updateThemeColors();
     updateInputTheme();
+    updateFontSizes();
     background(bgColor);
 
     // Add one simulated amplitude point every 100 milliseconds
@@ -100,7 +101,7 @@ function drawHeader() {
     rect(0,0,width,90);
 
     fill(255);
-    textSize(34);
+    textSize(titleSize);
     text("Automotive TPMS Dashboard", width/2,45);
 }
 
@@ -117,7 +118,7 @@ function drawHomeButton(){
     fill(textColor);
 
     textAlign(CENTER,CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text("← Home",80,42);
 }
@@ -195,7 +196,7 @@ function drawRightPanel(){
     noStroke();
 
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     text("Settings",x+w/2,y+30);
 
     textAlign(LEFT,CENTER);
@@ -205,7 +206,7 @@ function drawRightPanel(){
 
     fill(textColor);
 
-    textSize(18);
+    textSize(labelSize);
 
     //------------------------------------
     // Frequency
@@ -263,7 +264,7 @@ function drawRightPanel(){
 
     fill(255);
     textAlign(CENTER, CENTER);
-    textSize(20);
+    textSize(labelSize);
 
     if (graphRunning) {
         text(
@@ -303,7 +304,7 @@ function drawRightPanel(){
     noStroke();
     fill(textColor);
     textAlign(CENTER, CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text(
         "CLEAR GRAPH",
@@ -349,7 +350,7 @@ function drawLeftPanel(){
     noStroke();
 
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     text("Burst Data",x+w/2,y+30);
     text("Tire ID",x+w/2,y+330);
 
@@ -360,7 +361,7 @@ function drawLeftPanel(){
 
     fill(255);
 
-    textSize(18);
+    textSize(labelSize);
 
     //line
     stroke(255,140,0);
@@ -403,7 +404,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
     // Axis labels
     noStroke();
     fill(textColor);
-    textSize(12);
+    textSize(smallSize);
 
     textAlign(CENTER, TOP);
     text("Time", graphX + graphW / 2, graphY + graphH + 8);
@@ -458,7 +459,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
     noStroke();
     fill(textColor);
     textAlign(RIGHT, TOP);
-    textSize(13);
+    textSize(smallSize);
 
     let latestAmplitude =
         amplitudeHistory[amplitudeHistory.length - 1];
