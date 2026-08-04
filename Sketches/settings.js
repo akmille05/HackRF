@@ -205,7 +205,7 @@ function drawAccessibilityPanel(){
         toggleH,
         largeTextOn
     );
-
+    fill(textColor);
     text("High Contrast:",left,y+380);
 }
 
