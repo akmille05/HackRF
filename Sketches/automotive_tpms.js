@@ -41,8 +41,24 @@ function setup() {
     triggerInput.style("font-size", "16px");
 }
 
+function updateInputTheme() {
+    if (lightModeOn) {
+        triggerInput.style("background", "#eeeeee");
+        triggerInput.style("color", "black");
+    } else {
+        triggerInput.style("background", "#232323");
+        triggerInput.style("color", "white");
+    }
+
+    triggerInput.style("border", "2px solid rgb(255,140,0)");
+    triggerInput.style("font-family", "Orbitron");
+    triggerInput.style("font-size", "16px");
+}
+
 function draw() {
-    background(35);
+    updateThemeColors();
+    updateInputTheme();
+    background(bgColor);
 
     // Add one simulated amplitude point every 100 milliseconds
     if (graphRunning &&millis() - lastAmplitudeUpdate >= graphUpdateInterval) {
@@ -91,14 +107,14 @@ function drawHeader() {
 //HOME BUTTON
 function drawHomeButton(){
 
-    fill(55);
+    fill(panelColor);
     stroke(255,140,0);
     strokeWeight(2);
 
     rect(20,20,120,45,10);
 
     noStroke();
-    fill(255);
+    fill(textColor);
 
     textAlign(CENTER,CENTER);
     textSize(18);
@@ -173,12 +189,12 @@ function drawRightPanel(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
 
-    fill(255);
+    fill(textColor);
     textSize(30);
     text("Settings",x+w/2,y+30);
 
@@ -187,7 +203,7 @@ function drawRightPanel(){
     let left = x+40;
     let inputX = x+230;
 
-    fill(255);
+    fill(textColor);
 
     textSize(18);
 
@@ -217,7 +233,7 @@ function drawRightPanel(){
     //------------------------------------
     // VGA Gain
     //------------------------------------
-    fill(255);
+    fill(textColor);
     text("VGA Gain:",left,y+270);
     vgaSlider.position(inputX - 70, y + 258);
     vgaSlider.size(150);
@@ -228,7 +244,7 @@ function drawRightPanel(){
     //------------------------------------
     //Trigger Multiplier
     //------------------------------------
-    fill(255);
+    fill(textColor);
     text("Trigger Multiplier:",left,y+330);
     triggerInput.position(inputX, y + 315);
 
@@ -272,7 +288,7 @@ function drawRightPanel(){
     let clearButtonW = 180;
     let clearButtonH = 50;
 
-    fill(55);
+    fill(panelColor);
     stroke(255, 140, 0);
     strokeWeight(2);
 
@@ -285,7 +301,7 @@ function drawRightPanel(){
     );
 
     noStroke();
-    fill(255);
+    fill(textColor);
     textAlign(CENTER, CENTER);
     textSize(18);
 
@@ -327,12 +343,12 @@ function drawLeftPanel(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
 
-    fill(255);
+    fill(textColor);
     textSize(30);
     text("Burst Data",x+w/2,y+30);
     text("Tire ID",x+w/2,y+330);
@@ -366,7 +382,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
     // Graph background
     stroke(255, 140, 0);
     strokeWeight(1);
-    fill(35);
+    fill(bgColor);
     rect(graphX, graphY, graphW, graphH);
 
     // Horizontal grid lines
@@ -386,7 +402,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
 
     // Axis labels
     noStroke();
-    fill(200);
+    fill(textColor);
     textSize(12);
 
     textAlign(CENTER, TOP);
@@ -440,7 +456,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
 
     // Display latest amplitude
     noStroke();
-    fill(255);
+    fill(textColor);
     textAlign(RIGHT, TOP);
     textSize(13);
 

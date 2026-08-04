@@ -155,8 +155,35 @@ async function loadHackRFData() {
     }
 }
 
+function updateInputTheme() {
+    let inputs = [
+        frequencyInput,
+        durationInput,
+        sampleRateInput,
+        cutoffInput
+    ];
+
+    for (let input of inputs) {
+        if (lightModeOn) {
+            input.style("background", "#eeeeee");
+            input.style("color", "black");
+        } else {
+            input.style("background", "#232323");
+            input.style("color", "white");
+        }
+
+        input.style("border", "2px solid orange");
+        input.style("border-radius", "8px");
+        input.style("padding", "6px");
+        input.style("font-size", "16px");
+        input.style("font-family", "Orbitron");
+    }
+}
+
 function draw() {
-    background(35);
+    updateThemeColors();
+    updateInputTheme();
+    background(bgColor);
 
     drawHeader();
     drawSpectrumViewer();
@@ -185,10 +212,10 @@ function drawSpectrumViewer(){
 
     stroke(255,140,0);
     strokeWeight(3);
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
-    fill(255);
+    fill(textColor);
     noStroke();
     textSize(24);
     text("Spectrum Viewer",x+w/2,y+25);
@@ -219,7 +246,7 @@ function drawSpectrumViewer(){
     // Left Arrow
     //---------------------------------------
 
-    fill(255,140,0);
+    fill(panelColor);
     noStroke();
 
     drawArrowButton(
@@ -234,7 +261,7 @@ function drawSpectrumViewer(){
         "right"
     );
 
-    fill(255);
+    fill(textColor);
     textSize(18);
     text(
         spectrumNames[spectrumIndex],
@@ -269,7 +296,7 @@ function drawArrowButton(x, y, direction) {
         fill(255,140,0);
     }
     else {
-        fill(120);
+        fill(panelColor);
     }
 
 
@@ -307,20 +334,34 @@ function drawDemodToggle(x, y, w, h, label, active) {
     strokeWeight(2);
 
     if (active) {
-        fill(255,140,0);
+        fill(255, 140, 0);
     } else if (hovering) {
-        fill(80);
+        if (lightModeOn) {
+            fill(200);
+        } else {
+            fill(80);
+        }
     } else {
-        fill(50);
+        fill(panelColor);
     }
 
     rect(x, y, w, h, 10);
 
     noStroke();
-    fill(active ? 35 : 255);
+    if (active) {
+        fill(35);
+    } else {
+        fill(textColor);
+    }
+
     textAlign(CENTER, CENTER);
     textSize(18);
-    text(label + (active ? "   \u25CF ON" : "   \u25CB OFF"), x + w/2, y + h/2);
+
+    text(
+        label + (active ? "   ● ON" : "   ○ OFF"),
+        x + w / 2,
+        y + h / 2
+    );
 }
 
 function drawDemodulator(){
@@ -333,11 +374,11 @@ function drawDemodulator(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
-    fill(255);
+    fill(textColor);
     textSize(24);
     text("Demodulator",x+w/2,y+25);
 
@@ -381,7 +422,7 @@ function drawToggleSwitch(x, y, checked, label) {
     circle(knobX + knobD/2, y + toggleH/2, knobD);
 
     // Label + ON/OFF state
-    fill(255);
+    fill(textColor);
     textAlign(LEFT, CENTER);
     textSize(18);
     text(label + (checked ? "  (ON)" : "  (OFF)"), x + toggleW + 15, y + toggleH/2);
@@ -397,12 +438,12 @@ function drawSettingsPanel(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
 
-    fill(255);
+    fill(textColor);
     textSize(30);
     text("Settings",x+w/2,y+40);
 
@@ -411,7 +452,7 @@ function drawSettingsPanel(){
     let left = x+40;
     let inputX = x+230;
 
-    fill(255);
+    fill(textColor);
 
     textSize(18);
 
@@ -501,14 +542,14 @@ function windowResized(){
 
 function drawHomeButton(){
 
-    fill(55);
+    fill(panelColor);
     stroke(255,140,0);
     strokeWeight(2);
 
     rect(20,20,120,45,10);
 
     noStroke();
-    fill(255);
+    fill(textColor);
 
     textAlign(CENTER,CENTER);
     textSize(18);
