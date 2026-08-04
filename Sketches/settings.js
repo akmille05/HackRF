@@ -1,5 +1,4 @@
 let highContrastOn = false;
-let largeTextOn = false;
 let buttonNoiseOn = false;
 let saveData = false;
 
@@ -12,6 +11,7 @@ function setup() {
 }
 function draw() {
     updateThemeColors();
+    updateFontSizes();
     background(bgColor);
 
 
@@ -30,21 +30,11 @@ function drawHeader() {
     rect(0,0,width,90);
 
     fill(255);
-    textSize(34);
+    textSize(titleSize);
     textAlign(CENTER,CENTER);
     text("Settings", width/2,45);
 }
 function drawHomeButton(){
-    let panelColor;
-    let textColor;
-
-    if (lightModeOn) {
-        panelColor = color(220);   // light gray panels
-        textColor = color(0);      // black text
-    } else {
-        panelColor = color(55);    // dark gray panels
-        textColor = color(255);    // white text
-    }
 
     fill(panelColor);
     stroke(255,140,0);
@@ -56,41 +46,64 @@ function drawHomeButton(){
     fill(textColor);
 
     textAlign(CENTER,CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text("← Home",80,42);
 }
 
-function mousePressed(){
-
-    if(mouseX >= 20 &&
-       mouseX <= 140 &&
-       mouseY >= 20 &&
-       mouseY <= 65){
-
+function mousePressed() {
+    // Home button
+    if (
+        mouseX >= 20 &&
+        mouseX <= 140 &&
+        mouseY >= 20 &&
+        mouseY <= 65
+    ) {
         window.location.href = "../ui.html";
+        return;
     }
 
-    // Match the Appearance panel dimensions
+    // Shared panel/button dimensions
     let x = 10;
     let y = 120;
     let w = width * 0.46;
 
-    // Match the Light Mode toggle dimensions
-    let toggleX = x + w - 100;
-    let toggleY = y + 72;
     let toggleW = 60;
     let toggleH = 30;
 
+    //------------------------------------
+    // Light Mode toggle
+    //------------------------------------
+
+    let lightToggleX = x + w - 100;
+    let lightToggleY = y + 72;
+
     if (
-        mouseX >= toggleX &&
-        mouseX <= toggleX + toggleW &&
-        mouseY >= toggleY &&
-        mouseY <= toggleY + toggleH
+        mouseX >= lightToggleX &&
+        mouseX <= lightToggleX + toggleW &&
+        mouseY >= lightToggleY &&
+        mouseY <= lightToggleY + toggleH
     ) {
         saveLightMode(!lightModeOn);
+        return;
     }
 
+    //------------------------------------
+    // Large Text toggle
+    //------------------------------------
+
+    let largeTextToggleX = x + w - 100;
+    let largeTextToggleY = y + 322;
+
+    if (
+        mouseX >= largeTextToggleX &&
+        mouseX <= largeTextToggleX + toggleW &&
+        mouseY >= largeTextToggleY &&
+        mouseY <= largeTextToggleY + toggleH
+    ) {
+        saveLargeText(!largeTextOn);
+        return;
+    }
 }
 
 function drawToggle(x, y, w, h, isOn) {
@@ -141,30 +154,21 @@ function drawAppearancePanel(){
     rect(x,y,w,h,15);
     noStroke();
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     text("Appearance",x+w/2,y+30);
     textAlign(LEFT,CENTER);
     let left = x+40;
     let right = x+w+100;
     let inputX = x+230;
     fill(textColor);
-    textSize(18);
+    textSize(labelSize);
     text("Light mode:",left,y+90);
     drawToggle(x + w - 100, y + 72, 60, 30, lightModeOn);
 
 }
 
 function drawAccessibilityPanel(){
-    let panelColor;
-    let textColor;
 
-    if (lightModeOn) {
-        panelColor = color(220);   // light gray panels
-        textColor = color(0);      // black text
-    } else {
-        panelColor = color(55);    // dark gray panels
-        textColor = color(255);    // white text
-    } 
 
     let x = 10;
     let y = 120;
@@ -180,27 +184,33 @@ function drawAccessibilityPanel(){
     rect(x,y+250,w,h,15);
     noStroke();
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     textAlign(CENTER,CENTER);
     text("Accessibility",x+w/2,y+280);
     textAlign(LEFT,CENTER);
     fill(textColor);
-    textSize(18);
+    textSize(labelSize);
+
     text("Large Text:",left,y+340);
+
+    let largeTextToggleX = x + w - 100;
+    let largeTextToggleY = y + 322;
+    let toggleW = 60;
+    let toggleH = 30;
+
+    drawToggle(
+        largeTextToggleX,
+        largeTextToggleY,
+        toggleW,
+        toggleH,
+        largeTextOn
+    );
+
     text("High Contrast:",left,y+380);
 }
 
 function drawNotificationsPanel(){
-    let panelColor;
-    let textColor;
-
-    if (lightModeOn) {
-        panelColor = color(220);   // light gray panels
-        textColor = color(0);      // black text
-    } else {
-        panelColor = color(55);    // dark gray panels
-        textColor = color(255);    // white text
-    } 
+    
 
     let x = 10;
     let y = 120;
@@ -216,26 +226,16 @@ function drawNotificationsPanel(){
     rect(x+w+65,y,w,h,15);
     noStroke();
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     textAlign(CENTER,CENTER);
     text("Notifications",x+w+65+w/2,y+30);
     textAlign(LEFT,CENTER);
     fill(textColor);
-    textSize(18);
+    textSize(labelSize);
     text("Button Noise:",right,y+90);
 }
 
 function drawDataPanel(){
-    let panelColor;
-    let textColor;
-
-    if (lightModeOn) {
-        panelColor = color(220);   // light gray panels
-        textColor = color(0);      // black text
-    } else {
-        panelColor = color(55);    // dark gray panels
-        textColor = color(255);    // white text
-    }
 
     let x = 10;
     let y = 120;
@@ -251,12 +251,12 @@ function drawDataPanel(){
     rect(x+w+65,y+250,w,h,15);
     noStroke();
     fill(textColor);
-    textSize(30);
+    textSize(headingSize);
     textAlign(CENTER,CENTER);
     text("Data",x+w+65+w/2,y+280);
     textAlign(LEFT,CENTER);
     fill(textColor);
-    textSize(18);
+    textSize(labelSize);
     text("Save Data to File:",right,y+340);
 
 

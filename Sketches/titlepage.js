@@ -25,6 +25,7 @@ function setup() {
 function draw() {
 
     updateThemeColors();
+    updateFontSizes();
     background(bgColor);
 
     noStroke();
