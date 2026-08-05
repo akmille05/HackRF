@@ -4,6 +4,8 @@ let lightModeOn =
     localStorage.getItem("lightModeOn") === "true";
 let largeTextOn =
     localStorage.getItem("largeTextOn") === "true";
+let highContrastOn =
+    localStorage.getItem("highContrastOn") === "true";
 
 
 let bgColor;
@@ -16,20 +18,40 @@ let labelSize;
 let smallSize;
 
 function updateThemeColors() {
-    if (lightModeOn) {
-        bgColor = color(235);
-        panelColor = color(220);
-        textColor = color(0);
+    if (highContrastOn) {
+        if (lightModeOn) {
+            bgColor = color(255);
+            panelColor = color(245);
+            textColor = color(0);
+        } else {
+            bgColor = color(0);
+            panelColor = color(20);
+            textColor = color(255);
+        }
     } else {
-        bgColor = color(35);
-        panelColor = color(55);
-        textColor = color(255);
+        if (lightModeOn) {
+            bgColor = color(235);
+            panelColor = color(220);
+            textColor = color(0);
+        } else {
+            bgColor = color(35);
+            panelColor = color(55);
+            textColor = color(255);
+        }
     }
 }
 
 function saveLightMode(value) {
     lightModeOn = value;
     localStorage.setItem("lightModeOn", String(value));
+}
+
+function saveHighContrast(value) {
+    highContrastOn = value;
+    localStorage.setItem(
+        "highContrastOn",
+        String(value)
+    );
 }
 
 function updateFontSizes() {
