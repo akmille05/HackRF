@@ -41,8 +41,25 @@ function setup() {
     triggerInput.style("font-size", "16px");
 }
 
+function updateInputTheme() {
+    if (lightModeOn) {
+        triggerInput.style("background", "#eeeeee");
+        triggerInput.style("color", "black");
+    } else {
+        triggerInput.style("background", "#232323");
+        triggerInput.style("color", "white");
+    }
+
+    triggerInput.style("border", "2px solid rgb(255,140,0)");
+    triggerInput.style("font-family", "Orbitron");
+    triggerInput.style("font-size", "16px");
+}
+
 function draw() {
-    background(35);
+    updateThemeColors();
+    updateInputTheme();
+    updateFontSizes();
+    background(bgColor);
 
     // Add one simulated amplitude point every 100 milliseconds
     if (graphRunning &&millis() - lastAmplitudeUpdate >= graphUpdateInterval) {
@@ -84,24 +101,24 @@ function drawHeader() {
     rect(0,0,width,90);
 
     fill(255);
-    textSize(34);
+    textSize(titleSize);
     text("Automotive TPMS Dashboard", width/2,45);
 }
 
 //HOME BUTTON
 function drawHomeButton(){
 
-    fill(55);
+    fill(panelColor);
     stroke(255,140,0);
     strokeWeight(2);
 
     rect(20,20,120,45,10);
 
     noStroke();
-    fill(255);
+    fill(textColor);
 
     textAlign(CENTER,CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text("← Home",80,42);
 }
@@ -173,13 +190,13 @@ function drawRightPanel(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
 
-    fill(255);
-    textSize(30);
+    fill(textColor);
+    textSize(headingSize);
     text("Settings",x+w/2,y+30);
 
     textAlign(LEFT,CENTER);
@@ -187,9 +204,9 @@ function drawRightPanel(){
     let left = x+40;
     let inputX = x+230;
 
-    fill(255);
+    fill(textColor);
 
-    textSize(18);
+    textSize(labelSize);
 
     //------------------------------------
     // Frequency
@@ -217,7 +234,7 @@ function drawRightPanel(){
     //------------------------------------
     // VGA Gain
     //------------------------------------
-    fill(255);
+    fill(textColor);
     text("VGA Gain:",left,y+270);
     vgaSlider.position(inputX - 70, y + 258);
     vgaSlider.size(150);
@@ -228,7 +245,7 @@ function drawRightPanel(){
     //------------------------------------
     //Trigger Multiplier
     //------------------------------------
-    fill(255);
+    fill(textColor);
     text("Trigger Multiplier:",left,y+330);
     triggerInput.position(inputX, y + 315);
 
@@ -247,7 +264,7 @@ function drawRightPanel(){
 
     fill(255);
     textAlign(CENTER, CENTER);
-    textSize(20);
+    textSize(labelSize);
 
     if (graphRunning) {
         text(
@@ -272,7 +289,7 @@ function drawRightPanel(){
     let clearButtonW = 180;
     let clearButtonH = 50;
 
-    fill(55);
+    fill(panelColor);
     stroke(255, 140, 0);
     strokeWeight(2);
 
@@ -285,9 +302,9 @@ function drawRightPanel(){
     );
 
     noStroke();
-    fill(255);
+    fill(textColor);
     textAlign(CENTER, CENTER);
-    textSize(18);
+    textSize(labelSize);
 
     text(
         "CLEAR GRAPH",
@@ -327,13 +344,13 @@ function drawLeftPanel(){
     stroke(255,140,0);
     strokeWeight(3);
 
-    fill(55);
+    fill(panelColor);
     rect(x,y,w,h,15);
 
     noStroke();
 
-    fill(255);
-    textSize(30);
+    fill(textColor);
+    textSize(headingSize);
     text("Burst Data",x+w/2,y+30);
     text("Tire ID",x+w/2,y+330);
 
@@ -344,7 +361,7 @@ function drawLeftPanel(){
 
     fill(255);
 
-    textSize(18);
+    textSize(labelSize);
 
     //line
     stroke(255,140,0);
@@ -366,7 +383,7 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
     // Graph background
     stroke(255, 140, 0);
     strokeWeight(1);
-    fill(35);
+    fill(bgColor);
     rect(graphX, graphY, graphW, graphH);
 
     // Horizontal grid lines
@@ -386,8 +403,8 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
 
     // Axis labels
     noStroke();
-    fill(200);
-    textSize(12);
+    fill(textColor);
+    textSize(smallSize);
 
     textAlign(CENTER, TOP);
     text("Time", graphX + graphW / 2, graphY + graphH + 8);
@@ -440,9 +457,9 @@ function drawAmplitudeGraph(graphX, graphY, graphW, graphH) {
 
     // Display latest amplitude
     noStroke();
-    fill(255);
+    fill(textColor);
     textAlign(RIGHT, TOP);
-    textSize(13);
+    textSize(smallSize);
 
     let latestAmplitude =
         amplitudeHistory[amplitudeHistory.length - 1];
