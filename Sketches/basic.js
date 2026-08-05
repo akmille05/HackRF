@@ -2,18 +2,12 @@ let fftEnabled = false;
 let filterEnabled = false;
 let amplifyEnabled = false;
 
-let frequency = "";
-let duration = "";
-let sampleRate = "";
-let cutoff = "";
+// Which filter type is active when filterEnabled is true
+let filterType = "Lowpass";
+let filterTypeOptions = ["Lowpass", "Highpass", "Bandpass", "Bandstop"];
 
 let spectrumIndex = 0;
 let spectrumNames = ["Original"];
-
-let frequencyInput;
-let durationInput;
-let sampleRateInput;
-let cutoffInput;
 
 let selectedDemod = null;
 
@@ -57,6 +51,62 @@ function generateSpectrumSignal(peakPos, peakHeight, noiseLevel) {
     return data;
 }
 
+// Simple moving-average smoothing helper, used to build the different
+// filter-type responses below.
+function movingAverage(data, windowSize) {
+    let smoothed = [];
+
+    for (let i = 0; i < data.length; i++) {
+        let sum = 0;
+        let count = 0;
+
+        for (let j = -windowSize; j <= windowSize; j++) {
+            let idx = i + j;
+
+            if (idx >= 0 && idx < data.length) {
+                sum += data[idx];
+                count++;
+            }
+        }
+
+        smoothed.push(sum / count);
+    }
+
+    return smoothed;
+}
+
+// Applies the currently selected filter type as a stand-in for a real
+// DSP filter, so each option visibly changes the spectrum shape.
+function applyFilterType(data, type) {
+    if (type === "Lowpass") {
+        // Keep the slow-moving shape, smooth out the fast wiggles
+        return movingAverage(data, 5);
+    }
+
+    if (type === "Highpass") {
+        // Keep only what the lowpass removed (the fast wiggles)
+        let low = movingAverage(data, 5);
+        return data.map((v, i) => v - low[i]);
+    }
+
+    if (type === "Bandpass") {
+        // Keep a middle band: narrow smoothing minus wide smoothing
+        let narrow = movingAverage(data, 2);
+        let wide = movingAverage(data, 10);
+        return narrow.map((v, i) => v - wide[i]);
+    }
+
+    if (type === "Bandstop") {
+        // Remove that same middle band, keep everything else
+        let narrow = movingAverage(data, 2);
+        let wide = movingAverage(data, 10);
+        let band = narrow.map((v, i) => v - wide[i]);
+        return data.map((v, i) => v - band[i]);
+    }
+
+    return data;
+}
+
 // Applies the current toggle states to a spectrum array for display.
 function applyProcessing(data) {
     let result = data.slice();
@@ -66,28 +116,9 @@ function applyProcessing(data) {
         result = result.map(v => Math.abs(v));
     }
 
-    // Filter: moving-average smoothing (simple stand-in for a low-pass filter)
+    // Filter: apply whichever filter type is currently selected
     if (filterEnabled) {
-        let windowSize = 5;
-        let smoothed = [];
-
-        for (let i = 0; i < result.length; i++) {
-            let sum = 0;
-            let count = 0;
-
-            for (let j = -windowSize; j <= windowSize; j++) {
-                let idx = i + j;
-
-                if (idx >= 0 && idx < result.length) {
-                    sum += result[idx];
-                    count++;
-                }
-            }
-
-            smoothed.push(sum / count);
-        }
-
-        result = smoothed;
+        result = applyFilterType(result, filterType);
     }
 
     // Amplify: scale the amplitude up
@@ -106,29 +137,8 @@ function setup() {
     textAlign(CENTER, CENTER);
     textFont("Orbitron");
 
-    frequencyInput = createInput("");
-    durationInput = createInput("");
-    sampleRateInput = createInput("");
-    cutoffInput = createInput("");
-
     loadHackRFData();
     generateTestSpectrums();
-
-    let inputs = [
-        frequencyInput,
-        durationInput,
-        sampleRateInput,
-        cutoffInput
-    ];
-
-    for (let input of inputs) {
-        input.style("background", "#232323");
-        input.style("color", "white");
-        input.style("border", "2px solid orange");
-        input.style("border-radius", "8px");
-        input.style("padding", "6px");
-        input.style("font-size", "16px");
-    }
 }
 
 async function loadHackRFData() {
@@ -144,37 +154,8 @@ async function loadHackRFData() {
     }
 }
 
-function updateInputTheme() {
-
-    let inputs = [
-        frequencyInput,
-        durationInput,
-        sampleRateInput,
-        cutoffInput
-    ];
-
-    for (let input of inputs) {
-
-        if (lightModeOn) {
-            input.style("background", "#eeeeee");
-            input.style("color", "black");
-        }
-        else {
-            input.style("background", "#232323");
-            input.style("color", "white");
-        }
-
-        input.style("border", "2px solid orange");
-        input.style("border-radius", "8px");
-        input.style("padding", "6px");
-        input.style("font-size", "16px");
-        input.style("font-family", "Orbitron");
-    }
-}
-
 function draw() {
     updateThemeColors();
-    updateInputTheme();
     updateFontSizes();
     background(bgColor);
 
@@ -183,6 +164,7 @@ function draw() {
     drawDemodulator();
     drawSettingsPanel();
     drawHomeButton();
+    drawSettingsButton();
 }
 
 function drawHeader() {
@@ -234,6 +216,17 @@ function drawSpectrumViewer(){
     }
 
     endShape();
+
+    //---------------------------------------
+    // Filter type label (only while Apply Filter is on)
+    //---------------------------------------
+
+    if (filterEnabled) {
+        noStroke();
+        fill(255,140,0);
+        textSize(labelSize * 0.85);
+        text("Filter: " + filterType, x + w/2, y + 45);
+    }
 
     //---------------------------------------
     // Left Arrow
@@ -411,6 +404,51 @@ function drawToggleSwitch(x, y, checked, label) {
     text(label + (checked ? "  (ON)" : "  (OFF)"), x + toggleW + 15, y + toggleH/2);
 }
 
+// Small selectable pill button, used for the filter-type picker
+function drawFilterOptionButton(x, y, w, h, label, active) {
+
+    let hovering =
+        mouseX >= x &&
+        mouseX <= x + w &&
+        mouseY >= y &&
+        mouseY <= y + h;
+
+    stroke(255,140,0);
+    strokeWeight(2);
+
+    if (active) {
+        fill(255,140,0);
+    } else if (hovering) {
+        fill(lightModeOn ? 200 : 80);
+    } else {
+        fill(panelColor);
+    }
+
+    rect(x, y, w, h, 8);
+
+    noStroke();
+    fill(active ? 35 : textColor);
+    textAlign(CENTER, CENTER);
+    textSize(labelSize * 0.8);
+    text(label, x + w/2, y + h/2);
+}
+
+function drawFilterTypeSelector(x, y, w) {
+
+    let gap = 10;
+    let btnW = (w - gap) / 2;
+    let btnH = 32;
+
+    for (let i = 0; i < filterTypeOptions.length; i++) {
+        let col = i % 2;
+        let row = Math.floor(i / 2);
+        let bx = x + col * (btnW + gap);
+        let by = y + row * (btnH + gap);
+
+        drawFilterOptionButton(bx, by, btnW, btnH, filterTypeOptions[i], filterType === filterTypeOptions[i]);
+    }
+}
+
 function drawSettingsPanel(){
 
     let x = width*0.50;
@@ -433,7 +471,6 @@ function drawSettingsPanel(){
     textAlign(LEFT,CENTER);
 
     let left = x+40;
-    let inputX = x+230;
 
     fill(textColor);
 
@@ -457,7 +494,7 @@ function drawSettingsPanel(){
 
     let activeToggles = [];
     if (fftEnabled) activeToggles.push("FFT");
-    if (filterEnabled) activeToggles.push("Filter");
+    if (filterEnabled) activeToggles.push("Filter (" + filterType + ")");
     if (amplifyEnabled) activeToggles.push("Amplify");
 
     text(
@@ -472,14 +509,6 @@ function drawSettingsPanel(){
 
     drawToggleSwitch(left, y+205, fftEnabled, "Apply FFT");
 
-    if (fftEnabled) {
-        sampleRateInput.show();
-        sampleRateInput.position(inputX, y + 265);
-        sampleRateInput.size(220, 35);
-    } else {
-        sampleRateInput.hide();
-    }
-
     //------------------------------------
     // Amplify
     //------------------------------------
@@ -493,28 +522,24 @@ function drawSettingsPanel(){
     drawToggleSwitch(left, y+405, filterEnabled, "Apply Filter");
 
     if (filterEnabled) {
-        cutoffInput.show();
-        cutoffInput.position(inputX, y + 475);
-        cutoffInput.size(220, 35);
-    } else {
-        cutoffInput.hide();
+        drawFilterTypeSelector(left, y+445, w - 80);
     }
 
     //------------------------------------
     // Run Button
     //------------------------------------
 
-    fill(255,140,0);
+    // fill(255,140,0);
 
-    rect(x+40,h+y-90,180,50,10);
+    // rect(x+40,h+y-90,180,50,10);
 
-    fill(255);
+    // fill(255);
 
-    textAlign(CENTER,CENTER);
+    // textAlign(CENTER,CENTER);
 
-    textSize(labelSize);
+    // textSize(labelSize);
 
-    text("Run Capture",x+130,h+y-65);
+    // text("Run Capture",x+130,h+y-65);
 }
 
 function windowResized(){
@@ -540,6 +565,29 @@ function drawHomeButton(){
     text("← Home",80,42);
 }
 
+// Top-right box, same styling as the Home button, links to settings.js
+function drawSettingsButton(){
+
+    let w = 120;
+    let h = 45;
+    let x = width - w - 20;
+    let y = 20;
+
+    fill(panelColor);
+    stroke(255,140,0);
+    strokeWeight(2);
+
+    rect(x,y,w,h,10);
+
+    noStroke();
+    fill(textColor);
+
+    textAlign(CENTER,CENTER);
+    textSize(labelSize);
+
+    text("Settings", x + w/2, y + h/2);
+}
+
 function mousePressed(){
 
     if(mouseX >= 20 &&
@@ -551,10 +599,25 @@ function mousePressed(){
     }
 
     //------------------------------------
-    // Run Capture button (fixed: was
-    // referencing undefined x/y/h, which
-    // threw an error and blocked every
-    // click handler below it)
+    // Settings button (top right)
+    //------------------------------------
+
+    let settingsBtnW = 120;
+    let settingsBtnH = 45;
+    let settingsBtnX = width - settingsBtnW - 20;
+    let settingsBtnY = 20;
+
+    if (
+        mouseX >= settingsBtnX &&
+        mouseX <= settingsBtnX + settingsBtnW &&
+        mouseY >= settingsBtnY &&
+        mouseY <= settingsBtnY + settingsBtnH
+    ) {
+        window.location.href = "settings.html";
+    }
+
+    //------------------------------------
+    // Run Capture button
     //------------------------------------
 
     let settingsX = width * 0.50;
@@ -568,8 +631,10 @@ function mousePressed(){
         mouseY >= settingsH + settingsY - 90 &&
         mouseY <= settingsH + settingsY - 40
     ) {
-        console.log("Frequency:", frequencyInput.value());
-        console.log("Duration:", durationInput.value());
+        console.log("Frequency:", 103700000);
+        console.log("Sample Rate:", 2400000);
+        console.log("Filter:", filterEnabled ? filterType : "off");
+        console.log("Demod:", selectedDemod);
     }
 
     //------------------------------------
@@ -643,6 +708,36 @@ function mousePressed(){
         mouseY <= settingsY + 405 + toggleH
     ) {
         filterEnabled = !filterEnabled;
+    }
+
+    //------------------------------------
+    // Filter type selector buttons
+    //------------------------------------
+
+    if (filterEnabled) {
+        let selX = settingsX + 40;
+        let selY = settingsY + 445;
+        let selW = settingsW - 80;
+
+        let gap = 10;
+        let btnW2 = (selW - gap) / 2;
+        let btnH2 = 32;
+
+        for (let i = 0; i < filterTypeOptions.length; i++) {
+            let col = i % 2;
+            let row = Math.floor(i / 2);
+            let bx = selX + col * (btnW2 + gap);
+            let by = selY + row * (btnH2 + gap);
+
+            if (
+                mouseX >= bx &&
+                mouseX <= bx + btnW2 &&
+                mouseY >= by &&
+                mouseY <= by + btnH2
+            ) {
+                filterType = filterTypeOptions[i];
+            }
+        }
     }
 
     //------------------------------------

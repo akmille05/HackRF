@@ -365,6 +365,36 @@ function drawDemodToggle(x, y, w, h, label, active) {
     );
 }
 
+async function setDemodulator(mode) {
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/set_demodulator",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    mode: mode
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        console.log(result.message);
+
+    }
+    catch(err) {
+
+        console.error(err);
+
+    }
+
+}
+
 function drawDemodulator(){
 
     let x = 40;
@@ -490,13 +520,13 @@ function drawSettingsPanel(){
 
     drawToggleSwitch(left, y+205, fftEnabled, "Apply FFT");
 
-    if (fftEnabled) {
-        sampleRateInput.show();
-        sampleRateInput.position(inputX, y + 265);
-        sampleRateInput.size(220, 35);
-    } else {
-        sampleRateInput.hide();
-    }
+    // if (fftEnabled) {
+    //     sampleRateInput.show();
+    //     sampleRateInput.position(inputX, y + 265);
+    //     sampleRateInput.size(220, 35);
+    // } else {
+    //     sampleRateInput.hide();
+    // }
 
     //------------------------------------
     // Amplify
@@ -510,13 +540,13 @@ function drawSettingsPanel(){
 
     drawToggleSwitch(left, y+405, filterEnabled, "Apply Filter");
 
-    if (filterEnabled) {
-        cutoffInput.show();
-        cutoffInput.position(inputX, y + 475);
-        cutoffInput.size(220, 35);
-    } else {
-        cutoffInput.hide();
-    }
+    // if (filterEnabled) {
+    //     cutoffInput.show();
+    //     cutoffInput.position(inputX, y + 475);
+    //     cutoffInput.size(220, 35);
+    // } else {
+    //     cutoffInput.hide();
+    // }
 
     //------------------------------------
     // Run Button
@@ -611,7 +641,10 @@ function mousePressed(){
         mouseY <= fmY + btnH
     ) {
         selectedDemod = (selectedDemod === "FM") ? null : "FM";
-        console.log(selectedDemod);
+        //console.log(selectedDemod);
+        if(selectedDemod){
+            setDemodulator(selectedDemod);
+        }
     }
 
     // AM
@@ -622,7 +655,10 @@ function mousePressed(){
         mouseY <= amY + btnH
     ) {
         selectedDemod = (selectedDemod === "AM") ? null : "AM";
-        console.log(selectedDemod);
+        //console.log(selectedDemod);
+        if(selectedDemod){
+            setDemodulator(selectedDemod);
+        }
     }
 
     //------------------------------------
