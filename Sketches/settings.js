@@ -1,4 +1,3 @@
-let highContrastOn = false;
 let buttonNoiseOn = false;
 let saveData = false;
 
@@ -104,6 +103,21 @@ function mousePressed() {
         saveLargeText(!largeTextOn);
         return;
     }
+    //------------------------------------
+    // High Contrast toggle
+    //------------------------------------
+    let highContrastToggleX = x + w - 100;
+    let highContrastToggleY = y + 362;
+
+    if (
+        mouseX >= highContrastToggleX &&
+        mouseX <= highContrastToggleX + toggleW &&
+        mouseY >= highContrastToggleY &&
+        mouseY <= highContrastToggleY + toggleH
+    ) {
+        saveHighContrast(!highContrastOn);
+        return;
+    }
 }
 
 function drawToggle(x, y, w, h, isOn) {
@@ -205,8 +219,20 @@ function drawAccessibilityPanel(){
         toggleH,
         largeTextOn
     );
+    fill(textColor);
+
 
     text("High Contrast:",left,y+380);
+    let highContrastToggleX = x + w - 100;
+    let highContrastToggleY = y + 362;
+
+    drawToggle(
+        highContrastToggleX,
+        highContrastToggleY,
+        toggleW,
+        toggleH,
+        highContrastOn
+    );
 }
 
 function drawNotificationsPanel(){
