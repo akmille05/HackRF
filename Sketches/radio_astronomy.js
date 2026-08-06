@@ -1,3 +1,5 @@
+console.log("RADIO_ASTRONOMY.JS LOADED");
+
 let fftEnabled = false;
 let filterEnabled = false;
 let amplifyEnabled = false;
@@ -19,6 +21,14 @@ let selectedDemod = null;
 
 let leftArrowHover = false;
 let rightArrowHover = false;
+
+function preload() {
+    clickSound = loadSound(
+        "../Sounds/click.wav",
+        () => console.log("Click sound loaded"),
+        error => console.error("Click sound failed:", error)
+    );
+}
 
 let hackrfData = {
     frequency: "",
@@ -564,7 +574,7 @@ function mousePressed(){
        mouseX <= 140 &&
        mouseY >= 20 &&
        mouseY <= 65){
-
+        playButtonClick();
         window.location.href = "../ui.html";
     }
 
@@ -586,6 +596,7 @@ function mousePressed(){
         mouseY >= settingsH + settingsY - 90 &&
         mouseY <= settingsH + settingsY - 40
     ) {
+        playButtonClick();
         console.log("Frequency:", frequencyInput.value());
         console.log("Duration:", durationInput.value());
     }
@@ -610,6 +621,7 @@ function mousePressed(){
         mouseY >= fmY &&
         mouseY <= fmY + btnH
     ) {
+        playButtonClick();
         selectedDemod = (selectedDemod === "FM") ? null : "FM";
         console.log(selectedDemod);
     }
@@ -621,6 +633,7 @@ function mousePressed(){
         mouseY >= amY &&
         mouseY <= amY + btnH
     ) {
+        playButtonClick();
         selectedDemod = (selectedDemod === "AM") ? null : "AM";
         console.log(selectedDemod);
     }
@@ -640,6 +653,7 @@ function mousePressed(){
         mouseY >= settingsY + 205 &&
         mouseY <= settingsY + 205 + toggleH
     ) {
+        playButtonClick();
         fftEnabled = !fftEnabled;
     }
 
@@ -650,6 +664,7 @@ function mousePressed(){
         mouseY >= settingsY + 335 &&
         mouseY <= settingsY + 335 + toggleH
     ) {
+        playButtonClick();
         amplifyEnabled = !amplifyEnabled;
     }
 
@@ -660,6 +675,7 @@ function mousePressed(){
         mouseY >= settingsY + 405 &&
         mouseY <= settingsY + 405 + toggleH
     ) {
+        playButtonClick();
         filterEnabled = !filterEnabled;
     }
 
@@ -680,7 +696,7 @@ function mousePressed(){
         mouseY >= spectrumY + spectrumH - 60 &&
         mouseY <= spectrumY + spectrumH
     ) {
-
+        playButtonClick();
         spectrumIndex--;
 
         if(spectrumIndex < 0){
@@ -697,7 +713,7 @@ function mousePressed(){
         mouseY >= spectrumY + spectrumH - 60 &&
         mouseY <= spectrumY + spectrumH
     ) {
-
+        playButtonClick();
         spectrumIndex++;
 
         if(spectrumIndex >= spectrumNames.length){
