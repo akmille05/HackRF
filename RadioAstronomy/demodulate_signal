@@ -1,0 +1,34 @@
+import numpy as np
+from scipy import signal
+
+
+class Demodulator:
+
+    def __init__(self):
+        self.mode = "RAW"
+
+    def set_mode(self, mode):
+        self.mode = mode.upper()
+
+    def demodulate(self, iq):
+
+        if self.mode == "RAW":
+            return iq
+
+        elif self.mode == "AM":
+            return self.am(iq)
+
+        elif self.mode == "FM":
+            return self.fm(iq)
+
+        elif self.mode == "USB":
+            return self.usb(iq)
+
+        elif self.mode == "LSB":
+            return self.lsb(iq)
+
+        elif self.mode == "CW":
+            return self.cw(iq)
+
+        else:
+            raise ValueError("Unsupported demodulation mode.")

@@ -127,6 +127,20 @@ function drawHomeButton(){
     text("← Home",80,42);
 }
 
+    let settingsBtnW = 120;
+    let settingsBtnH = 45;
+    let settingsBtnX = width - settingsBtnW - 20;
+    let settingsBtnY = 20;
+
+    if (
+        mouseX >= settingsBtnX &&
+        mouseX <= settingsBtnX + settingsBtnW &&
+        mouseY >= settingsBtnY &&
+        mouseY <= settingsBtnY + settingsBtnH
+    ) {
+        window.location.href = "settings.html";
+    }
+
 //BACK TO HOME PAGE IF HOME BUTTON IS CLICKED
 function mousePressed(){
     //home button
