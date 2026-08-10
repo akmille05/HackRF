@@ -6,6 +6,8 @@ let largeTextOn =
     localStorage.getItem("largeTextOn") === "true";
 let highContrastOn =
     localStorage.getItem("highContrastOn") === "true";
+let buttonNoiseOn =
+    localStorage.getItem("buttonNoiseOn") === "true";
 
 
 let bgColor;
@@ -16,6 +18,27 @@ let titleSize;
 let headingSize;
 let labelSize;
 let smallSize;
+
+let clickSound;
+
+function playButtonClick() {
+    if (
+        !buttonNoiseOn ||
+        !clickSound ||
+        !clickSound.isLoaded()
+    ) {
+        return;
+    }
+
+    // Browsers may suspend audio when a new page loads.
+    userStartAudio()
+        .then(() => {
+            clickSound.play();
+        })
+        .catch(error => {
+            console.error("Could not start audio:", error);
+        });
+}
 
 function updateThemeColors() {
     if (highContrastOn) {
@@ -75,6 +98,14 @@ function saveLargeText(value) {
 
     localStorage.setItem(
         "largeTextOn",
+        String(value)
+    );
+}
+
+function saveButtonNoise(value) {
+    buttonNoiseOn = value;
+    localStorage.setItem(
+        "buttonNoiseOn",
         String(value)
     );
 }

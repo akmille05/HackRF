@@ -17,6 +17,10 @@ let currentAmplitude = 5;
 let lastAmplitudeUpdate = 0;
 let graphUpdateInterval = 100;
 
+function preload() {
+    clickSound = loadSound("../Sounds/click.wav");
+}
+
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -144,7 +148,7 @@ function mousePressed(){
        mouseX <= 140 &&
        mouseY >= 20 &&
        mouseY <= 65){
-
+        playButtonClick();
         window.location.href = "../ui.html";
     }
 
@@ -166,6 +170,7 @@ function mousePressed(){
         mouseY >= buttonY &&
         mouseY <= buttonY + buttonH
     ) {
+        playButtonClick();
         graphRunning = !graphRunning;
 
         // Prevent an old timer value from causing an immediate update
@@ -185,6 +190,7 @@ function mousePressed(){
         mouseY >= clearButtonY &&
         mouseY <= clearButtonY + clearButtonH
     ) {
+        playButtonClick();
         amplitudeHistory = [];
         currentAmplitude = 5;
         lastAmplitudeUpdate = millis();

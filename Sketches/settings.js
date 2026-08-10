@@ -1,5 +1,8 @@
-let buttonNoiseOn = false;
 let saveData = false;
+
+function preload() {
+    clickSound = loadSound("../Sounds/click.wav");
+}
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -58,6 +61,7 @@ function mousePressed() {
         mouseY >= 20 &&
         mouseY <= 65
     ) {
+        playButtonClick();
         window.location.href = "../ui.html";
         return;
     }
@@ -83,6 +87,7 @@ function mousePressed() {
         mouseY >= lightToggleY &&
         mouseY <= lightToggleY + toggleH
     ) {
+        playButtonClick();
         saveLightMode(!lightModeOn);
         return;
     }
@@ -100,6 +105,7 @@ function mousePressed() {
         mouseY >= largeTextToggleY &&
         mouseY <= largeTextToggleY + toggleH
     ) {
+        playButtonClick();
         saveLargeText(!largeTextOn);
         return;
     }
@@ -115,7 +121,24 @@ function mousePressed() {
         mouseY >= highContrastToggleY &&
         mouseY <= highContrastToggleY + toggleH
     ) {
+        playButtonClick();
         saveHighContrast(!highContrastOn);
+        return;
+    }
+
+    //------------------------------------
+    // Button Noise toggle
+    //------------------------------------
+    let buttonNoiseToggleX = x + w + 550;
+    let buttonNoiseToggleY = y + 72;
+
+    if (
+        mouseX >= buttonNoiseToggleX &&
+        mouseX <= buttonNoiseToggleX + toggleW &&
+        mouseY >= buttonNoiseToggleY &&
+        mouseY <= buttonNoiseToggleY + toggleH
+    ) {
+        saveButtonNoise(!buttonNoiseOn);
         return;
     }
 }
@@ -259,6 +282,19 @@ function drawNotificationsPanel(){
     fill(textColor);
     textSize(labelSize);
     text("Button Noise:",right,y+90);
+
+    let buttonNoiseToggleX = x + w + 550;
+    let buttonNoiseToggleY = y + 72;
+    let toggleW = 60;
+    let toggleH = 30;
+
+    drawToggle(
+        buttonNoiseToggleX,
+        buttonNoiseToggleY,
+        toggleW,
+        toggleH,
+        buttonNoiseOn
+    );
 }
 
 function drawDataPanel(){

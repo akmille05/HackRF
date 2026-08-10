@@ -2,6 +2,14 @@
 
 let projects = [];
 
+function preload() {
+    clickSound = loadSound(
+        "Sounds/click.wav",
+        () => console.log("Click sound loaded"),
+        error => console.error("Click sound failed:", error)
+    );
+}
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
 
@@ -95,21 +103,25 @@ stroke(255, 140, 0);
 function mousePressed(){
 
     if(projects[0].hovered()){
+        playButtonClick();
         window.location.href = "Sketches/basic.html";
 
     }
 
     if(projects[1].hovered()){
+        playButtonClick();
         console.log("TPMS selected");
         window.location.href = "Sketches/automotive_tpms.html";
     }
 
     if(projects[2].hovered()){
+        playButtonClick();
         console.log("Radio Astronomy selected");
         window.location.href = "Sketches/radio_astronomy.html";
     }
 
     if(projects[3].hovered()){
+        playButtonClick();
         console.log("Settings selected");
         window.location.href = "Sketches/settings.html";
     }
