@@ -17,9 +17,9 @@ let currentAmplitude = 5;
 let lastAmplitudeUpdate = 0;
 let graphUpdateInterval = 100;
 
-function preload() {
-    clickSound = loadSound("../Sounds/click.wav");
-}
+// function preload() {
+//     clickSound = loadSound("../Sounds/click.wav");
+// }
 
 
 function setup() {
@@ -82,6 +82,7 @@ function draw() {
     drawRightPanel();
     drawLeftPanel();
     drawHomeButton();
+    drawSettingsButton();
 }
 
 function addAmplitudePoint(amplitude) {
@@ -125,6 +126,28 @@ function drawHomeButton(){
     textSize(labelSize);
 
     text("← Home",80,42);
+}
+
+function drawSettingsButton(){
+
+    let w = 120;
+    let h = 45;
+    let x = width - w - 20;
+    let y = 20;
+
+    fill(panelColor);
+    stroke(255,140,0);
+    strokeWeight(2);
+
+    rect(x,y,w,h,10);
+
+    noStroke();
+    fill(textColor);
+
+    textAlign(CENTER,CENTER);
+    textSize(labelSize);
+
+    text("Settings", x + w/2, y + h/2);
 }
 
 //BACK TO HOME PAGE IF HOME BUTTON IS CLICKED
@@ -181,6 +204,20 @@ function mousePressed(){
         currentAmplitude = 5;
         lastAmplitudeUpdate = millis();
         return;
+    }
+
+    let settingsBtnW = 120;
+    let settingsBtnH = 45;
+    let settingsBtnX = width - settingsBtnW - 20;
+    let settingsBtnY = 20;
+
+    if (
+        mouseX >= settingsBtnX &&
+        mouseX <= settingsBtnX + settingsBtnW &&
+        mouseY >= settingsBtnY &&
+        mouseY <= settingsBtnY + settingsBtnH
+    ) {
+        window.location.href = "settings.html";
     }
 
 }

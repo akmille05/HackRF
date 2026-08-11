@@ -4,6 +4,9 @@ let fftEnabled = false;
 let filterEnabled = false;
 let amplifyEnabled = false;
 
+let smoothedData = null;
+let peakHold = null;
+
 let frequency = "";
 let duration = "";
 let sampleRate = "";
@@ -22,13 +25,13 @@ let selectedDemod = null;
 let leftArrowHover = false;
 let rightArrowHover = false;
 
-function preload() {
-    clickSound = loadSound(
-        "../Sounds/click.wav",
-        () => console.log("Click sound loaded"),
-        error => console.error("Click sound failed:", error)
-    );
-}
+// function preload() {
+//     clickSound = loadSound(
+//         "../Sounds/click.wav",
+//         () => console.log("Click sound loaded"),
+//         error => console.error("Click sound failed:", error)
+//     );
+// }
 
 let hackrfData = {
     frequency: "",
@@ -119,6 +122,22 @@ function applyProcessing(data) {
     return result;
 }
 
+testSpectrums["Live"] = new Array(numSpectrumPoints).fill(0);
+
+function fetchLiveSpectrum() {
+    fetch("hackrf_data.json")
+        .then(res => res.json())
+        .then(data => {
+            if (data.spectrum && data.spectrum.length) {
+                testSpectrums["Live"] = data.spectrum;
+                if (!spectrumNames.includes("Live")) {
+                    spectrumNames.push("Live");
+                }
+            }
+        })
+        .catch(err => console.error("Live spectrum fetch failed:", err));
+}
+
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -134,6 +153,7 @@ function setup() {
 
     loadHackRFData();
     generateTestSpectrums();
+    setInterval(fetchLiveSpectrum, 3000);
 
     let inputs = [
         frequencyInput,
@@ -151,6 +171,18 @@ function setup() {
         input.style("font-size", "16px");
     }
 }
+
+function loadLiveSnippet() {
+    // cache-bust so the browser doesn't just re-serve the old file
+    loadSound("radio_snippet.wav?t=" + Date.now(), sound => {
+        if (liveSound) liveSound.disconnect();
+        liveSound = sound;
+        liveSound.setVolume(0);   // mute playback, we just want the analysis
+        liveSound.play();
+        fftAnalyzer.setInput(liveSound);
+    });
+}
+
 
 async function loadHackRFData() {
     try {
@@ -201,6 +233,74 @@ function draw() {
     drawDemodulator();
     drawSettingsPanel();
     drawHomeButton();
+    drawSettingsButton();
+    drawSpectrumGrid();
+}
+
+function drawSpectrumGrid(x, y, w, h) {
+    stroke(lightModeOn ? 210 : 55);
+    strokeWeight(1);
+
+    let rows = 6;
+    for (let i = 0; i <= rows; i++) {
+        let gy = y + 55 + (i / rows) * (h - 100);
+        line(x + 55, gy, x + w - 20, gy);
+    }
+
+    let cols = 8;
+    for (let i = 0; i <= cols; i++) {
+        let gx = x + 55 + (i / cols) * (w - 75);
+        line(gx, y + 55, gx, y + h - 55);
+    }
+
+    // -------------------------------
+    // Axis labels
+    // -------------------------------
+
+    noStroke();
+    fill(textColor);
+    textSize(labelSize * 0.8);
+
+    // X-axis label
+    textAlign(CENTER, CENTER);
+
+    let xAxisLabel = fftEnabled ? "Frequency" : "Time";
+
+    text(
+        xAxisLabel,
+        x + w / 2,
+        y + h - 15
+    );
+
+    // Y-axis label
+    push();
+
+    translate(
+        x + 15,
+        y + h / 2
+    );
+
+    rotate(-HALF_PI);
+
+    text(
+        "Amplitude",
+        0,
+        0
+    );
+
+    pop();
+
+    noStroke();
+}
+
+function updatePeakHold(data) {
+    if (!peakHold || peakHold.length !== data.length) {
+        peakHold = data.slice();
+        return;
+    }
+    for (let i = 0; i < data.length; i++) {
+        peakHold[i] = data[i] > peakHold[i] ? data[i] : peakHold[i] - 0.15;
+    }
 }
 
 function drawHeader() {
@@ -232,32 +332,80 @@ function drawSpectrumViewer(){
     text("Spectrum Viewer",x+w/2,y+25);
 
     //---------------------------------------
-    // Test spectrum (reacts to toggles)
+    // Grid
     //---------------------------------------
 
-    stroke(255,140,0);
-    strokeWeight(2);
-    noFill();
+    drawSpectrumGrid(x, y, w, h);
+
+    //---------------------------------------
+    // Data prep: process, smooth, peak-hold
+    //---------------------------------------
 
     let rawData = testSpectrums[spectrumNames[spectrumIndex]];
     let data = applyProcessing(rawData);
 
-    beginShape();
-
-    for (let i = 0; i < data.length; i++) {
-        let px = x + 20 + (i / (data.length - 1)) * (w - 40);
-        let py = y + h/2 - data[i] * 2.2;
-
-        vertex(px, py);
+    if (!smoothedData || smoothedData.length !== data.length) {
+        smoothedData = data.slice();
+    } else {
+        for (let i = 0; i < data.length; i++) {
+            smoothedData[i] = lerp(smoothedData[i], data[i], 0.35);
+        }
     }
 
+    updatePeakHold(smoothedData);
+
+    //---------------------------------------
+    // Filled area under the curve
+    //---------------------------------------
+
+    noStroke();
+    fill(255,140,0,40);
+    beginShape();
+    vertex(x + 55, y + h/2);
+    for (let i = 0; i < smoothedData.length; i++) {
+        let px = x + 55 + (i / (smoothedData.length - 1)) * (w - 75);
+        let py = y + h/2 - smoothedData[i] * 2.2;
+        vertex(px, py);
+    }
+    vertex(x + w - 20, y + h/2);
+    endShape(CLOSE);
+
+    //---------------------------------------
+    // Main glowing trace
+    //---------------------------------------
+
+    drawingContext.shadowBlur = 8;
+    drawingContext.shadowColor = "rgba(255,140,0,0.8)";
+    stroke(255,180,60);
+    strokeWeight(2);
+    noFill();
+
+    beginShape();
+    for (let i = 0; i < smoothedData.length; i++) {
+        let px = x + 55 + (i / (smoothedData.length - 1)) * (w - 75);
+        let py = y + h/2 - smoothedData[i] * 2.2;
+        vertex(px, py);
+    }
     endShape();
+
+    drawingContext.shadowBlur = 0;
+
+    //---------------------------------------
+    // Filter type label (only while Apply Filter is on)
+    //---------------------------------------
+
+    if (filterEnabled) {
+        noStroke();
+        fill(255,140,0);
+        textSize(labelSize * 0.85);
+        text("Filter: " + filterType, x + w/2, y + 45);
+    }
 
     //---------------------------------------
     // Left Arrow
     //---------------------------------------
 
-    fill(panelColor);
+    fill(255,140,0);
     noStroke();
 
     drawArrowButton(
@@ -272,7 +420,7 @@ function drawSpectrumViewer(){
         "right"
     );
 
-    fill(textColor);
+    fill(255);
     textSize(labelSize);
     text(
         spectrumNames[spectrumIndex],
@@ -430,6 +578,28 @@ function drawDemodulator(){
 
     drawDemodToggle(x + 40, y + 65, btnW, btnH, "FM", selectedDemod === "FM");
     drawDemodToggle(x + 40, y + 125, btnW, btnH, "AM", selectedDemod === "AM");
+}
+
+function drawSettingsButton(){
+
+    let w = 120;
+    let h = 45;
+    let x = width - w - 20;
+    let y = 20;
+
+    fill(panelColor);
+    stroke(255,140,0);
+    strokeWeight(2);
+
+    rect(x,y,w,h,10);
+
+    noStroke();
+    fill(textColor);
+
+    textAlign(CENTER,CENTER);
+    textSize(labelSize);
+
+    text("Settings", x + w/2, y + h/2);
 }
 
 // Toggle switch for the settings panel (FFT / Filter / Amplify)
@@ -672,6 +842,20 @@ function mousePressed(){
         if(selectedDemod){
             setDemodulator(selectedDemod);
         }
+    }
+
+    let settingsBtnW = 120;
+    let settingsBtnH = 45;
+    let settingsBtnX = width - settingsBtnW - 20;
+    let settingsBtnY = 20;
+
+    if (
+        mouseX >= settingsBtnX &&
+        mouseX <= settingsBtnX + settingsBtnW &&
+        mouseY >= settingsBtnY &&
+        mouseY <= settingsBtnY + settingsBtnH
+    ) {
+        window.location.href = "settings.html";
     }
 
     //------------------------------------

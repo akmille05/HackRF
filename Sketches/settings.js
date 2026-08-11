@@ -1,8 +1,8 @@
 let saveData = false;
 
-function preload() {
-    clickSound = loadSound("../Sounds/click.wav");
-}
+// function preload() {
+//     clickSound = loadSound("../Sounds/click.wav");
+// }
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
