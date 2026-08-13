@@ -10,6 +10,9 @@ function setup() {
     rectMode(CORNER);
     textAlign(CENTER, CENTER);
     textFont("Orbitron");
+
+    saveData = localStorage.getItem("saveData") === "true";
+    
 }
 function draw() {
     updateThemeColors();
@@ -139,6 +142,31 @@ function mousePressed() {
         mouseY <= buttonNoiseToggleY + toggleH
     ) {
         saveButtonNoise(!buttonNoiseOn);
+        return;
+    }
+
+    //------------------------------------
+    // Save Data toggle
+    //------------------------------------
+
+    let saveDataToggleX = x + w + 550;
+    let saveDataToggleY = y + 322;
+
+    if (
+        mouseX >= saveDataToggleX &&
+        mouseX <= saveDataToggleX + toggleW &&
+        mouseY >= saveDataToggleY &&
+        mouseY <= saveDataToggleY + toggleH
+    ) {
+        playButtonClick();
+
+        saveData = !saveData;
+
+        localStorage.setItem(
+            "saveData",
+            saveData
+        );
+
         return;
     }
 }
@@ -301,26 +329,49 @@ function drawDataPanel(){
 
     let x = 10;
     let y = 120;
-    let w = width*0.46;
-    let h = height*0.3;
-    let left = x+40;
-    let right = x+w+100;
-    let inputX = x+230;
+    let w = width * 0.46;
+    let h = height * 0.3;
+
+    let right = x + w + 100;
 
     stroke(255,140,0);
     strokeWeight(3);
     fill(panelColor);
-    rect(x+w+65,y+250,w,h,15);
+
+    rect(x + w + 65, y + 250, w, h, 15);
+
     noStroke();
     fill(textColor);
+
     textSize(headingSize);
-    textAlign(CENTER,CENTER);
-    text("Data",x+w+65+w/2,y+280);
-    textAlign(LEFT,CENTER);
+    textAlign(CENTER, CENTER);
+
+    text(
+        "Data",
+        x + w + 65 + w / 2,
+        y + 280
+    );
+
+    textAlign(LEFT, CENTER);
+
     fill(textColor);
     textSize(labelSize);
-    text("Save Data to File:",right,y+340);
 
+    text(
+        "Save Data to File:",
+        right,
+        y + 340
+    );
 
+    // Save Data toggle
+    let saveDataToggleX = x + w + 550;
+    let saveDataToggleY = y + 322;
 
+    drawToggle(
+        saveDataToggleX,
+        saveDataToggleY,
+        60,
+        30,
+        saveData
+    );
 }

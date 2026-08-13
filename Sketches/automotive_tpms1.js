@@ -1,18 +1,18 @@
-console.log("RADIOASTRONOMY.JS LOADED");
+
+console.log("TPMS.JS LOADED");
 
 // ============================================================
-// Radio Astronomy - Hydrogen Line Dashboard
+// Automotive TPMS Dashboard
 // ============================================================
 
-// Hydrogen 21-cm line
-const HYDROGEN_LINE_FREQ = 1420.4058; // MHz
-const SPEED_OF_LIGHT = 299792.458;    // km/s
+// Common North American TPMS frequency
+const TPMS_FREQUENCY = 315.000; // MHz
 
 let fftEnabled = false;
-let averagingEnabled = false;
 let smoothingEnabled = false;
 let baselineEnabled = false;
 let noiseEnabled = false;
+let packetDetectionEnabled = false;
 
 let activeEnabled = false;
 
@@ -27,14 +27,22 @@ let rawLiveCapture = null;
 let spectrumIndex = 0;
 let spectrumNames = ["Original"];
 
+// Inputs
 let frequencyInput;
 let sampleRateInput;
-let integrationInput;
+let thresholdInput;
 
-// Hydrogen observation settings
-let observationFrequency = HYDROGEN_LINE_FREQ;
-let sampleRate = 2.4;
-let integrationTime = 10;
+// TPMS settings
+let operatingFrequency = TPMS_FREQUENCY;
+let sampleRate = 2.0;
+let packetThreshold = 0.18;
+
+// TPMS packet information
+let packetDetected = false;
+let packetCount = 0;
+let signalStrength = 0;
+let estimatedNoise = 0;
+
 
 // ============================================================
 // Test spectrum data
@@ -45,58 +53,53 @@ let numSpectrumPoints = 160;
 
 
 // ------------------------------------------------------------
-// Generate test hydrogen-line spectra
+// Generate test TPMS spectra
 // ------------------------------------------------------------
 
 function generateTestSpectrums() {
 
     testSpectrums["Original"] =
-        generateHydrogenSpectrum(
+        generateTPMSSpectrum(
             0.50,
-            38,
+            42,
             5,
-            18
+            10
         );
 
-    testSpectrums["Strong Hydrogen Line"] =
-        generateHydrogenSpectrum(
-            0.52,
-            55,
-            4,
-            12
-        );
-
-    testSpectrums["Weak Hydrogen Line"] =
-        generateHydrogenSpectrum(
-            0.48,
-            25,
-            7,
-            20
-        );
-
-    testSpectrums["Noisy Observation"] =
-        generateHydrogenSpectrum(
+    testSpectrums["Strong TPMS Signal"] =
+        generateTPMSSpectrum(
             0.50,
-            18,
-            14,
-            25
+            65,
+            4,
+            7
         );
 
-    spectrumNames = Object.keys(testSpectrums);
+    testSpectrums["Weak TPMS Signal"] =
+        generateTPMSSpectrum(
+            0.50,
+            25,
+            8,
+            13
+        );
+
+    testSpectrums["Noisy TPMS Signal"] =
+        generateTPMSSpectrum(
+            0.50,
+            32,
+            15,
+            11
+        );
+
+    spectrumNames =
+        Object.keys(testSpectrums);
 }
 
 
-// ------------------------------------------------------------
-// Generate a fake hydrogen-line spectrum
-// ------------------------------------------------------------
-//
-// peakPos     = location of hydrogen line, 0-1
-// peakHeight  = strength of line
-// noiseLevel  = random noise
-// width       = width of hydrogen line
-//
+// ============================================================
+// Generate simulated TPMS spectrum
+// ============================================================
 
-function generateHydrogenSpectrum(
+function generateTPMSSpectrum(
     peakPos,
     peakHeight,
     noiseLevel,
@@ -105,32 +108,52 @@ function generateHydrogenSpectrum(
 
     let data = [];
 
-    for (let i = 0; i < numSpectrumPoints; i++) {
+    for (
+        let i = 0;
+        i < numSpectrumPoints;
+        i++
+    ) {
 
-        let t = i / (numSpectrumPoints - 1);
+        let t =
+            i /
+            (numSpectrumPoints - 1);
 
-        let distance = t - peakPos;
+        let distance =
+            t - peakPos;
 
-        // Hydrogen spectral line
-        let hydrogenPeak =
+
+        // TPMS carrier peak
+
+        let carrier =
             peakHeight *
             Math.exp(
                 -(distance * distance) /
                 (width / 1000)
             );
 
-        // Background noise
-        let noise =
-            random(-noiseLevel, noiseLevel);
 
-        // Small baseline slope
-        let baseline =
-            3 * Math.sin(t * PI);
+        // Noise
+
+        let noise =
+            random(
+                -noiseLevel,
+                noiseLevel
+            );
+
+
+        // Background variation
+
+        let background =
+            2 *
+            Math.sin(
+                t * PI * 3
+            );
+
 
         data.push(
-            hydrogenPeak +
+            carrier +
             noise +
-            baseline
+            background
         );
     }
 
@@ -139,21 +162,25 @@ function generateHydrogenSpectrum(
 
 
 // ============================================================
-// Processing functions
+// Moving average
 // ============================================================
 
-// ------------------------------------------------------------
-// Moving average
-// ------------------------------------------------------------
-
-function movingAverage(data, windowSize) {
+function movingAverage(
+    data,
+    windowSize
+) {
 
     let result = [];
 
-    for (let i = 0; i < data.length; i++) {
+    for (
+        let i = 0;
+        i < data.length;
+        i++
+    ) {
 
         let sum = 0;
         let count = 0;
+
 
         for (
             let j = -windowSize;
@@ -161,127 +188,281 @@ function movingAverage(data, windowSize) {
             j++
         ) {
 
-            let index = i + j;
+            let index =
+                i + j;
+
 
             if (
                 index >= 0 &&
                 index < data.length
             ) {
 
-                sum += data[index];
+                sum +=
+                    data[index];
+
                 count++;
             }
         }
 
-        result.push(sum / count);
+
+        result.push(
+            sum / count
+        );
     }
 
     return result;
 }
 
 
-// ------------------------------------------------------------
-// Remove baseline
-// ------------------------------------------------------------
+// ============================================================
+// Baseline removal
+// ============================================================
 
-function removeBaseline(data) {
+function removeBaseline(
+    data
+) {
 
     let average =
         data.reduce(
-            (sum, value) => sum + value,
+            (sum, value) =>
+                sum + value,
             0
-        ) / data.length;
+        ) /
+        data.length;
+
 
     return data.map(
-        value => value - average
+        value =>
+            value - average
     );
 }
 
 
-// ------------------------------------------------------------
+// ============================================================
 // Estimate noise
-// ------------------------------------------------------------
+// ============================================================
 
-function estimateNoise(data) {
+function estimateNoise(
+    data
+) {
 
     let mean =
         data.reduce(
-            (sum, value) => sum + value,
+            (sum, value) =>
+                sum + value,
             0
-        ) / data.length;
+        ) /
+        data.length;
+
 
     let variance =
         data.reduce(
             (sum, value) =>
-                sum + Math.pow(value - mean, 2),
+                sum +
+                Math.pow(
+                    value - mean,
+                    2
+                ),
             0
-        ) / data.length;
+        ) /
+        data.length;
 
-    return Math.sqrt(variance);
+
+    return Math.sqrt(
+        variance
+    );
 }
 
 
-// ------------------------------------------------------------
-// Calculate SNR
-// ------------------------------------------------------------
+// ============================================================
+// Signal strength
+// ============================================================
 
-function calculateSNR(data) {
+function calculateSignalStrength(
+    data
+) {
 
-    let noise = estimateNoise(data);
+    return Math.max(
+        ...data
+    );
+}
 
-    if (noise === 0) {
+
+// ============================================================
+// SNR
+// ============================================================
+
+function calculateSNR(
+    data
+) {
+
+    let noise =
+        estimateNoise(
+            data
+        );
+
+
+    if (
+        noise === 0
+    ) {
+
         return 0;
     }
 
-    let peak =
-        Math.max(...data);
 
-    return peak / noise;
-}
+    let signal =
+        Math.max(
+            ...data
+        );
 
 
-// ------------------------------------------------------------
-// Smooth spectrum
-// ------------------------------------------------------------
-
-function smoothSpectrum(data) {
-
-    return movingAverage(data, 3);
+    return (
+        signal /
+        noise
+    );
 }
 
 
 // ============================================================
-// Apply processing
+// Packet detection
 // ============================================================
 
-function applyProcessing(data) {
+function detectTPMSPacket(
+    data
+) {
 
-    let result = data.slice();
+    let threshold =
+        parseFloat(
+            thresholdInput.value()
+        );
+
+
+    if (
+        isNaN(threshold)
+    ) {
+
+        threshold =
+            packetThreshold;
+    }
+
+
+    let maximum =
+        Math.max(
+            ...data
+        );
+
+
+    return (
+        maximum >
+        threshold * 100
+    );
+}
+
+
+// ============================================================
+// Processing
+// ============================================================
+
+function applyProcessing(
+    data
+) {
+
+    let result =
+        data.slice();
+
 
     // FFT stand-in
+
     if (fftEnabled) {
 
         result =
             result.map(
-                value => Math.abs(value)
+                value =>
+                    Math.abs(value)
             );
     }
 
+
     // Baseline removal
+
     if (baselineEnabled) {
 
         result =
-            removeBaseline(result);
+            removeBaseline(
+                result
+            );
     }
 
+
     // Smoothing
+
     if (smoothingEnabled) {
 
         result =
-            smoothSpectrum(result);
+            movingAverage(
+                result,
+                3
+            );
     }
 
+
     return result;
+}
+
+
+// ============================================================
+// Process TPMS capture
+// ============================================================
+
+function processTPMSCapture(
+    data
+) {
+
+    signalStrength =
+        calculateSignalStrength(
+            data
+        );
+
+
+    estimatedNoise =
+        estimateNoise(
+            data
+        );
+
+
+    packetDetected =
+        detectTPMSPacket(
+            data
+        );
+
+
+    if (
+        packetDetected
+    ) {
+
+        packetCount++;
+    }
+
+
+    console.log(
+        "TPMS signal strength:",
+        signalStrength
+    );
+
+    console.log(
+        "Estimated noise:",
+        estimatedNoise
+    );
+
+    console.log(
+        "SNR:",
+        calculateSNR(data)
+    );
+
+    console.log(
+        "Packet detected:",
+        packetDetected
+    );
 }
 
 
@@ -291,97 +472,130 @@ function applyProcessing(data) {
 
 function fetchLiveSpectrum() {
 
-    fetch("radioastronomydata.json")
+    fetch(
+        "tpmsdata.json"
+    )
 
-        .then(response => {
-
-            if (!response.ok) {
-                throw new Error(
-                    `HTTP ${response.status}`
-                );
-            }
-
-            return response.json();
-        })
-
-        .then(data => {
-
-            if (
-                data.spectrum &&
-                data.spectrum.length
-            ) {
-
-                rawLiveCapture =
-                    data.spectrum;
+        .then(
+            response => {
 
                 if (
-                    !spectrumNames.includes("Live")
+                    !response.ok
                 ) {
 
-                    spectrumNames.push("Live");
+                    throw new Error(
+                        `HTTP ${response.status}`
+                    );
                 }
 
-                applyTuning();
+                return response.json();
             }
+        )
 
-        })
+        .then(
+            data => {
 
-        .catch(error => {
+                if (
+                    data.spectrum &&
+                    data.spectrum.length
+                ) {
 
-            console.error(
-                "Radio astronomy spectrum fetch failed:",
-                error
-            );
-        });
+                    rawLiveCapture =
+                        data.spectrum;
+
+
+                    if (
+                        !spectrumNames.includes(
+                            "Live"
+                        )
+                    ) {
+
+                        spectrumNames.push(
+                            "Live"
+                        );
+                    }
+
+
+                    processTPMSCapture(
+                        rawLiveCapture
+                    );
+
+
+                    applyTuning();
+                }
+            }
+        )
+
+        .catch(
+            error => {
+
+                console.error(
+                    "TPMS spectrum fetch failed:",
+                    error
+                );
+            }
+        );
 }
 
 
 // ============================================================
-// Load radio astronomy JSON metadata
+// Load TPMS JSON
 // ============================================================
 
-async function loadRadioAstronomyData() {
+async function loadTPMSData() {
 
     try {
 
         const response =
             await fetch(
-                "radioastronomydata.json"
+                "tpmsdata.json"
             );
 
-        if (!response.ok) {
+
+        if (
+            !response.ok
+        ) {
 
             throw new Error(
                 `HTTP ${response.status}`
             );
         }
 
+
         const data =
             await response.json();
 
+
         console.log(
-            "Loaded radio astronomy data:",
+            "Loaded TPMS data:",
             data
         );
 
-        if (data.center_frequency) {
 
-            observationFrequency =
-                data.center_frequency;
+        if (
+            data.frequency
+        ) {
+
+            operatingFrequency =
+                data.frequency;
         }
 
-        if (data.sample_rate) {
+
+        if (
+            data.sample_rate
+        ) {
 
             sampleRate =
                 data.sample_rate;
         }
-
     }
 
-    catch (error) {
+    catch (
+        error
+    ) {
 
         console.error(
-            "Failed to load radio astronomy data:",
+            "Failed to load TPMS data:",
             error
         );
     }
@@ -399,14 +613,21 @@ function setup() {
         windowHeight
     );
 
-    rectMode(CORNER);
+
+    rectMode(
+        CORNER
+    );
+
 
     textAlign(
         CENTER,
         CENTER
     );
 
-    textFont("Orbitron");
+
+    textFont(
+        "Orbitron"
+    );
 
 
     // --------------------------------------------------------
@@ -415,35 +636,44 @@ function setup() {
 
     frequencyInput =
         createInput(
-            HYDROGEN_LINE_FREQ.toString()
+            "315.000"
         );
 
-    frequencyInput.size(100);
+
+    frequencyInput.size(
+        90
+    );
+
 
     frequencyInput.style(
         'font-family',
         'Orbitron'
     );
 
+
     frequencyInput.style(
         'background-color',
         'rgb(255,140,0)'
     );
+
 
     frequencyInput.style(
         'color',
         '#232323'
     );
 
+
     frequencyInput.style(
         'border',
         '2px solid rgb(255,180,60)'
     );
 
+
     frequencyInput.style(
         'border-radius',
         '6px'
     );
+
 
     frequencyInput.style(
         'padding',
@@ -452,38 +682,49 @@ function setup() {
 
 
     // --------------------------------------------------------
-    // Sample rate input
+    // Sample rate
     // --------------------------------------------------------
 
     sampleRateInput =
-        createInput("2.4");
+        createInput(
+            "2.0"
+        );
 
-    sampleRateInput.size(80);
+
+    sampleRateInput.size(
+        80
+    );
+
 
     sampleRateInput.style(
         'font-family',
         'Orbitron'
     );
 
+
     sampleRateInput.style(
         'background-color',
         'rgb(255,140,0)'
     );
+
 
     sampleRateInput.style(
         'color',
         '#232323'
     );
 
+
     sampleRateInput.style(
         'border',
         '2px solid rgb(255,180,60)'
     );
 
+
     sampleRateInput.style(
         'border-radius',
         '6px'
     );
+
 
     sampleRateInput.style(
         'padding',
@@ -492,40 +733,51 @@ function setup() {
 
 
     // --------------------------------------------------------
-    // Integration time
+    // Packet threshold
     // --------------------------------------------------------
 
-    integrationInput =
-        createInput("10");
+    thresholdInput =
+        createInput(
+            "0.18"
+        );
 
-    integrationInput.size(80);
 
-    integrationInput.style(
+    thresholdInput.size(
+        80
+    );
+
+
+    thresholdInput.style(
         'font-family',
         'Orbitron'
     );
 
-    integrationInput.style(
+
+    thresholdInput.style(
         'background-color',
         'rgb(255,140,0)'
     );
 
-    integrationInput.style(
+
+    thresholdInput.style(
         'color',
         '#232323'
     );
 
-    integrationInput.style(
+
+    thresholdInput.style(
         'border',
         '2px solid rgb(255,180,60)'
     );
 
-    integrationInput.style(
+
+    thresholdInput.style(
         'border-radius',
         '6px'
     );
 
-    integrationInput.style(
+
+    thresholdInput.style(
         'padding',
         '4px 8px'
     );
@@ -537,15 +789,17 @@ function setup() {
 
     freqSlider =
         createSlider(
-            1418,
-            1422,
-            HYDROGEN_LINE_FREQ,
+            314.5,
+            315.5,
+            315.0,
             0.001
         );
+
 
     freqSlider.input(
         applyTuning
     );
+
 
     freqSlider.style(
         'accent-color',
@@ -553,18 +807,16 @@ function setup() {
     );
 
 
-    // --------------------------------------------------------
-    // Load data
-    // --------------------------------------------------------
-
-    loadRadioAstronomyData();
+    loadTPMSData();
 
     generateTestSpectrums();
+
 
     setInterval(
         fetchLiveSpectrum,
         3000
     );
+
 
     updateFrequencyControl();
 }
@@ -578,54 +830,77 @@ function updateFrequencyControl() {
 
     freqSlider.attribute(
         'min',
-        1418
+        314.5
     );
+
 
     freqSlider.attribute(
         'max',
-        1422
+        315.5
     );
+
 
     freqSlider.attribute(
         'step',
         0.001
     );
 
+
     freqSlider.value(
-        HYDROGEN_LINE_FREQ
+        315.000
     );
+
 
     freqSlider.show();
 
+
     frequencyInput.hide();
+
 
     applyTuning();
 }
 
 
 // ============================================================
-// Tune spectrum
+// Tune TPMS spectrum
 // ============================================================
 
 function applyTuning() {
 
-    if (!rawLiveCapture) {
+    if (
+        !rawLiveCapture
+    ) {
+
         return;
     }
+
 
     let freqValue =
         freqSlider.value();
 
-    let minFreq = 1418;
-    let maxFreq = 1422;
+
+    let minFreq =
+        314.5;
+
+
+    let maxFreq =
+        315.5;
+
 
     let fraction =
         constrain(
-            (freqValue - minFreq) /
-            (maxFreq - minFreq),
+            (
+                freqValue -
+                minFreq
+            ) /
+            (
+                maxFreq -
+                minFreq
+            ),
             0,
             1
         );
+
 
     let shift =
         Math.floor(
@@ -633,11 +908,15 @@ function applyTuning() {
             rawLiveCapture.length
         );
 
+
     testSpectrums["Live"] =
         rawLiveCapture
             .slice(shift)
             .concat(
-                rawLiveCapture.slice(0, shift)
+                rawLiveCapture.slice(
+                    0,
+                    shift
+                )
             );
 }
 
@@ -649,15 +928,19 @@ function applyTuning() {
 function draw() {
 
     updateThemeColors();
+
     updateFontSizes();
 
-    background(bgColor);
+    background(
+        bgColor
+    );
+
 
     drawHeader();
 
     drawSpectrumViewer();
 
-    drawObservationPanel();
+    drawTPMSPanel();
 
     drawRunCaptureButton();
 
@@ -683,6 +966,7 @@ function drawHeader() {
         0
     );
 
+
     rect(
         0,
         0,
@@ -690,12 +974,16 @@ function drawHeader() {
         90
     );
 
+
     fill(255);
 
-    textSize(titleSize);
+    textSize(
+        titleSize
+    );
+
 
     text(
-        "Radio Astronomy - Hydrogen Line",
+        "Automotive TPMS Dashboard",
         width / 2,
         45
     );
@@ -719,9 +1007,14 @@ function drawSpectrumGrid(
             : 55
     );
 
-    strokeWeight(1);
+
+    strokeWeight(
+        1
+    );
+
 
     let rows = 6;
+
 
     for (
         let i = 0;
@@ -732,8 +1025,14 @@ function drawSpectrumGrid(
         let gy =
             y +
             55 +
-            (i / rows) *
-            (h - 100);
+            (
+                i /
+                rows
+            ) *
+            (
+                h - 100
+            );
+
 
         line(
             x + 55,
@@ -746,6 +1045,7 @@ function drawSpectrumGrid(
 
     let cols = 8;
 
+
     for (
         let i = 0;
         i <= cols;
@@ -755,8 +1055,14 @@ function drawSpectrumGrid(
         let gx =
             x +
             55 +
-            (i / cols) *
-            (w - 75);
+            (
+                i /
+                cols
+            ) *
+            (
+                w - 75
+            );
+
 
         line(
             gx,
@@ -769,21 +1075,21 @@ function drawSpectrumGrid(
 
     noStroke();
 
-    fill(textColor);
+    fill(
+        textColor
+    );
+
 
     textSize(
         labelSize * 0.8
     );
+
 
     textAlign(
         CENTER,
         CENTER
     );
 
-
-    // --------------------------------------------------------
-    // X axis
-    // --------------------------------------------------------
 
     text(
         fftEnabled
@@ -794,28 +1100,29 @@ function drawSpectrumGrid(
     );
 
 
-    // --------------------------------------------------------
-    // Y axis
-    // --------------------------------------------------------
-
     push();
+
 
     translate(
         x + 15,
         y + h / 2
     );
 
+
     rotate(
         -HALF_PI
     );
 
+
     text(
-        "Power / Amplitude",
+        "Amplitude",
         0,
         0
     );
 
+
     pop();
+
 
     noStroke();
 }
@@ -825,11 +1132,14 @@ function drawSpectrumGrid(
 // Peak hold
 // ============================================================
 
-function updatePeakHold(data) {
+function updatePeakHold(
+    data
+) {
 
     if (
         !peakHold ||
-        peakHold.length !== data.length
+        peakHold.length !==
+        data.length
     ) {
 
         peakHold =
@@ -886,9 +1196,16 @@ function drawSpectrumViewer() {
         0
     );
 
-    strokeWeight(3);
 
-    fill(panelColor);
+    strokeWeight(
+        3
+    );
+
+
+    fill(
+        panelColor
+    );
+
 
     rect(
         x,
@@ -899,14 +1216,21 @@ function drawSpectrumViewer() {
     );
 
 
-    fill(textColor);
+    fill(
+        textColor
+    );
+
 
     noStroke();
 
-    textSize(headingSize);
+
+    textSize(
+        headingSize
+    );
+
 
     text(
-        "Hydrogen Line Spectrum",
+        "TPMS Spectrum",
         x + w / 2,
         y + 25
     );
@@ -920,10 +1244,6 @@ function drawSpectrumViewer() {
     );
 
 
-    // --------------------------------------------------------
-    // Data
-    // --------------------------------------------------------
-
     let rawData =
         testSpectrums[
             spectrumNames[
@@ -932,7 +1252,10 @@ function drawSpectrumViewer() {
         ];
 
 
-    if (!rawData) {
+    if (
+        !rawData
+    ) {
+
         return;
     }
 
@@ -944,7 +1267,7 @@ function drawSpectrumViewer() {
 
 
     // --------------------------------------------------------
-    // Smoothing
+    // Smooth animation
     // --------------------------------------------------------
 
     if (
@@ -993,7 +1316,9 @@ function drawSpectrumViewer() {
         40
     );
 
+
     beginShape();
+
 
     vertex(
         x + 55,
@@ -1010,14 +1335,22 @@ function drawSpectrumViewer() {
         let px =
             x +
             55 +
-            (i /
-                (smoothedData.length - 1)) *
-            (w - 75);
+            (
+                i /
+                (
+                    smoothedData.length - 1
+                )
+            ) *
+            (
+                w - 75
+            );
+
 
         let py =
             y +
             h / 2 -
-            smoothedData[i] * 2.2;
+            smoothedData[i] *
+            2.2;
 
 
         vertex(
@@ -1032,6 +1365,7 @@ function drawSpectrumViewer() {
         y + h / 2
     );
 
+
     endShape(
         CLOSE
     );
@@ -1044,6 +1378,7 @@ function drawSpectrumViewer() {
     drawingContext.shadowBlur =
         8;
 
+
     drawingContext.shadowColor =
         "rgba(255,140,0,0.8)";
 
@@ -1054,12 +1389,17 @@ function drawSpectrumViewer() {
         60
     );
 
-    strokeWeight(2);
+
+    strokeWeight(
+        2
+    );
+
 
     noFill();
 
 
     beginShape();
+
 
     for (
         let i = 0;
@@ -1070,14 +1410,22 @@ function drawSpectrumViewer() {
         let px =
             x +
             55 +
-            (i /
-                (smoothedData.length - 1)) *
-            (w - 75);
+            (
+                i /
+                (
+                    smoothedData.length - 1
+                )
+            ) *
+            (
+                w - 75
+            );
+
 
         let py =
             y +
             h / 2 -
-            smoothedData[i] * 2.2;
+            smoothedData[i] *
+            2.2;
 
 
         vertex(
@@ -1085,6 +1433,7 @@ function drawSpectrumViewer() {
             py
         );
     }
+
 
     endShape();
 
@@ -1094,7 +1443,7 @@ function drawSpectrumViewer() {
 
 
     // --------------------------------------------------------
-    // Hydrogen line marker
+    // 315 MHz marker
     // --------------------------------------------------------
 
     let freqValue =
@@ -1105,11 +1454,11 @@ function drawSpectrumViewer() {
         constrain(
             (
                 freqValue -
-                1418
+                314.5
             ) /
             (
-                1422 -
-                1418
+                315.5 -
+                314.5
             ),
             0,
             1
@@ -1120,7 +1469,9 @@ function drawSpectrumViewer() {
         x +
         55 +
         fraction *
-        (w - 75);
+        (
+            w - 75
+        );
 
 
     stroke(
@@ -1130,7 +1481,10 @@ function drawSpectrumViewer() {
         90
     );
 
-    strokeWeight(1);
+
+    strokeWeight(
+        1
+    );
 
 
     line(
@@ -1145,7 +1499,7 @@ function drawSpectrumViewer() {
 
 
     // --------------------------------------------------------
-    // Hydrogen frequency label
+    // Frequency label
     // --------------------------------------------------------
 
     fill(
@@ -1154,14 +1508,15 @@ function drawSpectrumViewer() {
         0
     );
 
+
     textSize(
         labelSize * 0.75
     );
 
 
     text(
-        "H I 21-cm: " +
-        HYDROGEN_LINE_FREQ.toFixed(4) +
+        "TPMS Carrier: " +
+        freqValue.toFixed(3) +
         " MHz",
         x + w / 2,
         y + 47
@@ -1169,7 +1524,30 @@ function drawSpectrumViewer() {
 
 
     // --------------------------------------------------------
-    // Navigation arrows
+    // Packet status
+    // --------------------------------------------------------
+
+    fill(
+        textColor
+    );
+
+
+    textSize(
+        labelSize * 0.75
+    );
+
+
+    text(
+        packetDetected
+            ? "PACKET DETECTED"
+            : "NO PACKET",
+        x + w / 2,
+        y + h - 58
+    );
+
+
+    // --------------------------------------------------------
+    // Arrows
     // --------------------------------------------------------
 
     drawArrowButton(
@@ -1177,6 +1555,7 @@ function drawSpectrumViewer() {
         y + h - 35,
         "left"
     );
+
 
     drawArrowButton(
         x + w - 15,
@@ -1187,7 +1566,11 @@ function drawSpectrumViewer() {
 
     fill(255);
 
-    textSize(labelSize);
+
+    textSize(
+        labelSize
+    );
+
 
     text(
         spectrumNames[
@@ -1200,7 +1583,7 @@ function drawSpectrumViewer() {
 
 
 // ============================================================
-// Arrow button
+// Arrow buttons
 // ============================================================
 
 function drawArrowButton(
@@ -1233,19 +1616,15 @@ function drawArrowButton(
     }
 
 
-    if (hovering) {
-
-        fill(
-            255,
-            140,
-            0
-        );
-
-    }
-    else {
-
-        fill(120);
-    }
+    fill(
+        hovering
+            ? color(
+                255,
+                140,
+                0
+            )
+            : color(120)
+    );
 
 
     noStroke();
@@ -1280,29 +1659,25 @@ function drawArrowButton(
 
 
 // ============================================================
-// Observation information panel
+// TPMS information panel
 // ============================================================
 
-function drawObservationPanel() {
+// ============================================================
+// TPMS information panel
+// ============================================================
+
+function drawTPMSPanel() {
 
     let x = 40;
+    let y = height * 0.64;
+    let w = width * 0.42;
+    let h = height * 0.22;
 
-    let y =
-        height * 0.64;
+    // --------------------------------------------------------
+    // Panel
+    // --------------------------------------------------------
 
-    let w =
-        width * 0.42;
-
-    let h =
-        height * 0.22;
-
-
-    stroke(
-        255,
-        140,
-        0
-    );
-
+    stroke(255, 140, 0);
     strokeWeight(3);
 
     fill(panelColor);
@@ -1315,116 +1690,142 @@ function drawObservationPanel() {
         15
     );
 
+    // --------------------------------------------------------
+    // Title
+    // --------------------------------------------------------
 
     noStroke();
 
     fill(textColor);
 
-    textSize(headingSize);
+    textAlign(CENTER, CENTER);
+
+    // Make title smaller if screen is small
+    let titleSize = min(
+        headingSize,
+        w * 0.055
+    );
+
+    textSize(titleSize);
 
     text(
-        "Hydrogen Observation",
+        "TPMS Signal Analysis",
         x + w / 2,
-        y + 25
+        y + h * 0.16
     );
 
+    // --------------------------------------------------------
+    // Calculate responsive text sizes
+    // --------------------------------------------------------
 
-    textSize(
-        labelSize * 0.85
+    let infoSize = min(
+        labelSize * 0.75,
+        w * 0.032,
+        h * 0.12
     );
 
+    textSize(infoSize);
 
     // --------------------------------------------------------
-    // Center frequency
-    // --------------------------------------------------------
-
-    text(
-        "Rest Frequency: " +
-        HYDROGEN_LINE_FREQ.toFixed(4) +
-        " MHz",
-        x + w / 2,
-        y + 70
-    );
-
-
-    // --------------------------------------------------------
-    // Current frequency
-    // --------------------------------------------------------
-
-    text(
-        "Observed Frequency: " +
-        freqSlider.value().toFixed(4) +
-        " MHz",
-        x + w / 2,
-        y + 100
-    );
-
-
-    // --------------------------------------------------------
-    // Velocity
-    // --------------------------------------------------------
-
-    let velocity =
-        calculateVelocity(
-            freqSlider.value()
-        );
-
-
-    text(
-        "Estimated Velocity: " +
-        velocity.toFixed(2) +
-        " km/s",
-        x + w / 2,
-        y + 130
-    );
-
-
-    // --------------------------------------------------------
-    // SNR
+    // Values
     // --------------------------------------------------------
 
     let currentData =
         testSpectrums[
-            spectrumNames[
-                spectrumIndex
-            ]
+            spectrumNames[spectrumIndex]
         ];
 
+    let snr = 0;
 
     if (currentData) {
 
-        let snr =
+        snr =
             calculateSNR(
                 currentData
             );
-
-
-        text(
-            "SNR: " +
-            snr.toFixed(2),
-            x + w / 2,
-            y + 160
-        );
     }
-}
 
+    let frequencyText =
+        "Carrier Frequency: " +
+        freqSlider.value().toFixed(3) +
+        " MHz";
 
-// ============================================================
-// Doppler velocity
-// ============================================================
+    let strengthText =
+        "Signal Strength: " +
+        signalStrength.toFixed(2);
 
-function calculateVelocity(
-    observedFrequency
-) {
+    let noiseText =
+        "Estimated Noise: " +
+        estimatedNoise.toFixed(2);
 
-    return (
-        (
-            HYDROGEN_LINE_FREQ -
-            observedFrequency
-        ) /
-        HYDROGEN_LINE_FREQ
-    ) *
-    SPEED_OF_LIGHT;
+    let snrText =
+        "SNR: " +
+        snr.toFixed(2);
+
+    let packetText =
+        "Packets Detected: " +
+        packetCount;
+
+    // --------------------------------------------------------
+    // Two-column layout
+    // --------------------------------------------------------
+
+    let leftColumn =
+        x + w * 0.27;
+
+    let rightColumn =
+        x + w * 0.73;
+
+    let row1 =
+        y + h * 0.43;
+
+    let row2 =
+        y + h * 0.64;
+
+    let row3 =
+        y + h * 0.85;
+
+    // --------------------------------------------------------
+    // Left column
+    // --------------------------------------------------------
+
+    textAlign(CENTER, CENTER);
+
+    fill(textColor);
+
+    text(
+        frequencyText,
+        leftColumn,
+        row1
+    );
+
+    text(
+        noiseText,
+        leftColumn,
+        row2
+    );
+
+    text(
+        packetText,
+        leftColumn,
+        row3
+    );
+
+    // --------------------------------------------------------
+    // Right column
+    // --------------------------------------------------------
+
+    text(
+        strengthText,
+        rightColumn,
+        row1
+    );
+
+    text(
+        snrText,
+        rightColumn,
+        row2
+    );
 }
 
 
@@ -1440,20 +1841,25 @@ function drawToggleSwitch(
 ) {
 
     let toggleW = 46;
+
     let toggleH = 24;
 
 
     let hovering =
         mouseX >= x &&
-        mouseX <= x + toggleW &&
+        mouseX <=
+            x + toggleW &&
         mouseY >= y &&
-        mouseY <= y + toggleH;
+        mouseY <=
+            y + toggleH;
 
 
     noStroke();
 
 
-    if (checked) {
+    if (
+        checked
+    ) {
 
         fill(
             255,
@@ -1462,7 +1868,9 @@ function drawToggleSwitch(
         );
 
     }
-    else if (hovering) {
+    else if (
+        hovering
+    ) {
 
         fill(
             lightModeOn
@@ -1490,36 +1898,47 @@ function drawToggleSwitch(
     );
 
 
-    // Knob
+    fill(
+        textColor
+    );
 
-    fill(textColor);
 
     let knobD =
         toggleH - 6;
 
+
     let knobX =
         checked
-            ? x + toggleW - knobD - 3
+            ? x +
+              toggleW -
+              knobD -
+              3
             : x + 3;
 
 
     circle(
-        knobX + knobD / 2,
-        y + toggleH / 2,
+        knobX +
+        knobD / 2,
+        y +
+        toggleH / 2,
         knobD
     );
 
 
-    // Label
+    fill(
+        textColor
+    );
 
-    fill(textColor);
 
     textAlign(
         LEFT,
         CENTER
     );
 
-    textSize(labelSize);
+
+    textSize(
+        labelSize
+    );
 
 
     text(
@@ -1529,8 +1948,11 @@ function drawToggleSwitch(
                 ? "  (ON)"
                 : "  (OFF)"
         ),
-        x + toggleW + 15,
-        y + toggleH / 2
+        x +
+        toggleW +
+        15,
+        y +
+        toggleH / 2
     );
 }
 
@@ -1559,9 +1981,16 @@ function drawSettingsPanel() {
         0
     );
 
-    strokeWeight(3);
 
-    fill(panelColor);
+    strokeWeight(
+        3
+    );
+
+
+    fill(
+        panelColor
+    );
+
 
     rect(
         x,
@@ -1574,9 +2003,16 @@ function drawSettingsPanel() {
 
     noStroke();
 
-    fill(textColor);
 
-    textSize(headingSize);
+    fill(
+        textColor
+    );
+
+
+    textSize(
+        headingSize
+    );
+
 
     text(
         "Settings",
@@ -1595,15 +2031,17 @@ function drawSettingsPanel() {
         x + 40;
 
 
-    textSize(labelSize);
+    textSize(
+        labelSize
+    );
 
 
     // --------------------------------------------------------
-    // Observation frequency
+    // Frequency
     // --------------------------------------------------------
 
     text(
-        "Observed Frequency (MHz):",
+        "Tuned Frequency (MHz):",
         left,
         y + 90
     );
@@ -1611,23 +2049,30 @@ function drawSettingsPanel() {
 
     let freqLabelW =
         textWidth(
-            "Observed Frequency (MHz):"
+            "Tuned Frequency (MHz):"
         );
 
 
     freqSlider.position(
-        left + freqLabelW + 15,
-        y + 90 - 10
+        left +
+        freqLabelW +
+        15,
+        y + 80
     );
 
 
-    freqSlider.size(140);
+    freqSlider.size(
+        140
+    );
 
 
     text(
-        freqSlider.value().toFixed(4) +
+        freqSlider.value()
+            .toFixed(3) +
         " MHz",
-        left + freqLabelW + 165,
+        left +
+        freqLabelW +
+        165,
         y + 90
     );
 
@@ -1650,31 +2095,35 @@ function drawSettingsPanel() {
 
 
     sampleRateInput.position(
-        left + srLabelW + 15,
-        y + 125 - 10
+        left +
+        srLabelW +
+        15,
+        y + 115
     );
 
 
     // --------------------------------------------------------
-    // Integration time
+    // Packet threshold
     // --------------------------------------------------------
 
     text(
-        "Integration Time (s):",
+        "Packet Threshold:",
         left,
         y + 160
     );
 
 
-    let intLabelW =
+    let thresholdLabelW =
         textWidth(
-            "Integration Time (s):"
+            "Packet Threshold:"
         );
 
 
-    integrationInput.position(
-        left + intLabelW + 15,
-        y + 160 - 10
+    thresholdInput.position(
+        left +
+        thresholdLabelW +
+        15,
+        y + 150
     );
 
 
@@ -1686,26 +2135,42 @@ function drawSettingsPanel() {
 
 
     if (fftEnabled)
-        activeToggles.push("FFT");
+        activeToggles.push(
+            "FFT"
+        );
 
-    if (averagingEnabled)
-        activeToggles.push("Average");
 
     if (smoothingEnabled)
-        activeToggles.push("Smooth");
+        activeToggles.push(
+            "Smooth"
+        );
+
 
     if (baselineEnabled)
-        activeToggles.push("Baseline");
+        activeToggles.push(
+            "Baseline"
+        );
+
 
     if (noiseEnabled)
-        activeToggles.push("Noise");
+        activeToggles.push(
+            "Noise"
+        );
+
+
+    if (packetDetectionEnabled)
+        activeToggles.push(
+            "Packet Detection"
+        );
 
 
     text(
         "Active: " +
         (
             activeToggles.length
-                ? activeToggles.join(", ")
+                ? activeToggles.join(
+                    ", "
+                )
                 : "None"
         ),
         left,
@@ -1726,24 +2191,12 @@ function drawSettingsPanel() {
 
 
     // --------------------------------------------------------
-    // Averaging
-    // --------------------------------------------------------
-
-    drawToggleSwitch(
-        left,
-        y + 290,
-        averagingEnabled,
-        "Integrate / Average"
-    );
-
-
-    // --------------------------------------------------------
     // Smoothing
     // --------------------------------------------------------
 
     drawToggleSwitch(
         left,
-        y + 350,
+        y + 290,
         smoothingEnabled,
         "Smooth Spectrum"
     );
@@ -1755,7 +2208,7 @@ function drawSettingsPanel() {
 
     drawToggleSwitch(
         left,
-        y + 410,
+        y + 350,
         baselineEnabled,
         "Remove Baseline"
     );
@@ -1767,9 +2220,21 @@ function drawSettingsPanel() {
 
     drawToggleSwitch(
         left,
-        y + 470,
+        y + 410,
         noiseEnabled,
         "Estimate Noise"
+    );
+
+
+    // --------------------------------------------------------
+    // Packet Detection
+    // --------------------------------------------------------
+
+    drawToggleSwitch(
+        left,
+        y + 470,
+        packetDetectionEnabled,
+        "Detect Packets"
     );
 }
 
@@ -1795,9 +2260,11 @@ function drawRunCaptureButton() {
 
     let hovering =
         mouseX >= x &&
-        mouseX <= x + w &&
+        mouseX <=
+            x + w &&
         mouseY >= y &&
-        mouseY <= y + h;
+        mouseY <=
+            y + h;
 
 
     stroke(
@@ -1806,10 +2273,15 @@ function drawRunCaptureButton() {
         0
     );
 
-    strokeWeight(3);
+
+    strokeWeight(
+        3
+    );
 
 
-    if (hovering) {
+    if (
+        hovering
+    ) {
 
         fill(
             255,
@@ -1839,18 +2311,23 @@ function drawRunCaptureButton() {
 
     noStroke();
 
+
     fill(35);
+
 
     textAlign(
         CENTER,
         CENTER
     );
 
-    textSize(labelSize);
+
+    textSize(
+        labelSize
+    );
 
 
     text(
-        "Run Observation",
+        "Run TPMS Capture",
         x + w / 2,
         y + h / 2
     );
@@ -1858,7 +2335,7 @@ function drawRunCaptureButton() {
 
 
 // ============================================================
-// Mock hydrogen capture
+// Generate mock TPMS capture
 // ============================================================
 
 function generateMockCapture() {
@@ -1873,25 +2350,25 @@ function generateMockCapture() {
     let peakHeight =
         random(
             30,
-            55
+            60
         );
 
 
     let noiseLevel =
         random(
             4,
-            10
+            12
         );
 
 
     let width =
         random(
-            10,
-            25
+            7,
+            15
         );
 
 
-    return generateHydrogenSpectrum(
+    return generateTPMSSpectrum(
         peakPos,
         peakHeight,
         noiseLevel,
@@ -1906,7 +2383,10 @@ function generateMockCapture() {
 
 function drawHomeButton() {
 
-    fill(panelColor);
+    fill(
+        panelColor
+    );
+
 
     stroke(
         255,
@@ -1914,7 +2394,10 @@ function drawHomeButton() {
         0
     );
 
-    strokeWeight(2);
+
+    strokeWeight(
+        2
+    );
 
 
     rect(
@@ -1928,14 +2411,21 @@ function drawHomeButton() {
 
     noStroke();
 
-    fill(textColor);
+
+    fill(
+        textColor
+    );
+
 
     textAlign(
         CENTER,
         CENTER
     );
 
-    textSize(labelSize);
+
+    textSize(
+        labelSize
+    );
 
 
     text(
@@ -1956,15 +2446,20 @@ function drawSettingsButton() {
 
     let h = 45;
 
+
     let x =
         width -
         w -
         20;
 
+
     let y = 20;
 
 
-    fill(panelColor);
+    fill(
+        panelColor
+    );
+
 
     stroke(
         255,
@@ -1972,7 +2467,10 @@ function drawSettingsButton() {
         0
     );
 
-    strokeWeight(2);
+
+    strokeWeight(
+        2
+    );
 
 
     rect(
@@ -1986,14 +2484,21 @@ function drawSettingsButton() {
 
     noStroke();
 
-    fill(textColor);
+
+    fill(
+        textColor
+    );
+
 
     textAlign(
         CENTER,
         CENTER
     );
 
-    textSize(labelSize);
+
+    textSize(
+        labelSize
+    );
 
 
     text(
@@ -2029,26 +2534,34 @@ function mousePressed() {
 
 
     // --------------------------------------------------------
-    // Settings
+    // Settings button
     // --------------------------------------------------------
 
-    let settingsBtnW = 120;
-    let settingsBtnH = 45;
+    let settingsBtnW =
+        120;
+
+    let settingsBtnH =
+        45;
+
 
     let settingsBtnX =
         width -
         settingsBtnW -
         20;
 
-    let settingsBtnY = 20;
+
+    let settingsBtnY =
+        20;
 
 
     if (
-        mouseX >= settingsBtnX &&
+        mouseX >=
+            settingsBtnX &&
         mouseX <=
             settingsBtnX +
             settingsBtnW &&
-        mouseY >= settingsBtnY &&
+        mouseY >=
+            settingsBtnY &&
         mouseY <=
             settingsBtnY +
             settingsBtnH
@@ -2060,19 +2573,23 @@ function mousePressed() {
 
 
     // --------------------------------------------------------
-    // Settings panel
+    // Settings toggles
     // --------------------------------------------------------
 
     let settingsX =
         width * 0.50;
 
-    let settingsY = 120;
+
+    let settingsY =
+        120;
 
 
     let toggleX =
         settingsX + 40;
 
+
     let toggleW = 46;
+
     let toggleH = 24;
 
 
@@ -2081,11 +2598,14 @@ function mousePressed() {
     if (
         mouseX >= toggleX &&
         mouseX <=
-            toggleX + toggleW &&
+            toggleX +
+            toggleW &&
         mouseY >=
-            settingsY + 230 &&
+            settingsY +
+            230 &&
         mouseY <=
-            settingsY + 230 +
+            settingsY +
+            230 +
             toggleH
     ) {
 
@@ -2096,36 +2616,19 @@ function mousePressed() {
     }
 
 
-    // Averaging
-
-    if (
-        mouseX >= toggleX &&
-        mouseX <=
-            toggleX + toggleW &&
-        mouseY >=
-            settingsY + 290 &&
-        mouseY <=
-            settingsY + 290 +
-            toggleH
-    ) {
-
-        playButtonClick();
-
-        averagingEnabled =
-            !averagingEnabled;
-    }
-
-
     // Smoothing
 
     if (
         mouseX >= toggleX &&
         mouseX <=
-            toggleX + toggleW &&
+            toggleX +
+            toggleW &&
         mouseY >=
-            settingsY + 350 &&
+            settingsY +
+            290 &&
         mouseY <=
-            settingsY + 350 +
+            settingsY +
+            290 +
             toggleH
     ) {
 
@@ -2141,11 +2644,14 @@ function mousePressed() {
     if (
         mouseX >= toggleX &&
         mouseX <=
-            toggleX + toggleW &&
+            toggleX +
+            toggleW &&
         mouseY >=
-            settingsY + 410 &&
+            settingsY +
+            350 &&
         mouseY <=
-            settingsY + 410 +
+            settingsY +
+            350 +
             toggleH
     ) {
 
@@ -2161,11 +2667,14 @@ function mousePressed() {
     if (
         mouseX >= toggleX &&
         mouseX <=
-            toggleX + toggleW &&
+            toggleX +
+            toggleW &&
         mouseY >=
-            settingsY + 470 &&
+            settingsY +
+            410 &&
         mouseY <=
-            settingsY + 470 +
+            settingsY +
+            410 +
             toggleH
     ) {
 
@@ -2173,6 +2682,29 @@ function mousePressed() {
 
         noiseEnabled =
             !noiseEnabled;
+    }
+
+
+    // Packet detection
+
+    if (
+        mouseX >= toggleX &&
+        mouseX <=
+            toggleX +
+            toggleW &&
+        mouseY >=
+            settingsY +
+            470 &&
+        mouseY <=
+            settingsY +
+            470 +
+            toggleH
+    ) {
+
+        playButtonClick();
+
+        packetDetectionEnabled =
+            !packetDetectionEnabled;
     }
 
 
@@ -2256,18 +2788,21 @@ function mousePressed() {
 
 
     // --------------------------------------------------------
-    // Run Observation
+    // Run TPMS capture
     // --------------------------------------------------------
 
     let captureX = 40;
+
 
     let captureY =
         height * 0.64 +
         height * 0.22 +
         15;
 
+
     let captureW =
         width * 0.42;
+
 
     let captureH = 50;
 
@@ -2285,9 +2820,11 @@ function mousePressed() {
 
         playButtonClick();
 
+
         console.log(
-            "Hydrogen line observation"
+            "Starting TPMS capture..."
         );
+
 
         console.log(
             "Frequency:",
@@ -2295,29 +2832,29 @@ function mousePressed() {
             "MHz"
         );
 
-        console.log(
-            "Rest frequency:",
-            HYDROGEN_LINE_FREQ,
-            "MHz"
-        );
 
         console.log(
-            "Sample rate:",
+            "Sample Rate:",
             sampleRateInput.value(),
             "MS/s"
         );
 
+
         console.log(
-            "Integration:",
-            integrationInput.value(),
-            "seconds"
+            "Threshold:",
+            thresholdInput.value()
         );
 
 
-        // Generate simulated observation
+        // Generate simulated TPMS signal
 
         rawLiveCapture =
             generateMockCapture();
+
+
+        processTPMSCapture(
+            rawLiveCapture
+        );
 
 
         applyTuning();
@@ -2341,32 +2878,29 @@ function mousePressed() {
             );
 
 
-        // Calculate velocity
-
-        let velocity =
-            calculateVelocity(
-                freqSlider.value()
-            );
-
-
         console.log(
-            "Estimated velocity:",
-            velocity.toFixed(2),
-            "km/s"
+            "TPMS packet detected:",
+            packetDetected
         );
 
 
-        // Calculate SNR
-
-        let snr =
-            calculateSNR(
-                rawLiveCapture
-            );
+        console.log(
+            "Signal strength:",
+            signalStrength
+        );
 
 
         console.log(
-            "Estimated SNR:",
-            snr.toFixed(2)
+            "Noise:",
+            estimatedNoise
+        );
+
+
+        console.log(
+            "SNR:",
+            calculateSNR(
+                rawLiveCapture
+            )
         );
     }
 }
@@ -2383,3 +2917,4 @@ function windowResized() {
         windowHeight
     );
 }
+

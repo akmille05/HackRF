@@ -4,6 +4,12 @@ A Python-based project that interfaces with a HackRF Software Defined Radio (SDR
 
 The program connects to a HackRF device, captures IQ samples, performs signal processing techniques such as the Fast Fourier Transform (FFT) and frequency-domain filtering, demodulates the selected signal, and exports the resulting audio to a `.wav` file for playback.
 
+This project also includes a UI interface where the collected data can be used in a visual display to the user. The user can toggle what they would like included in the spectrum (FFT, amplifyed spectrum, and filtering (which includes a drop down of what filters can be applied to the dataset))
+
+Our UI is able access 3 seperate projects, the Classic HackRF connection interface, named Basic in our UI, An Automotive TPMS (Tire Pressure Monitoring System) interface, and a Radio Astronomy Hydrogen Line interface.
+
+Our UI also includes a settings page, which has editable changes to the UI such as light/dark mode, enlarged text, and high contrast for a more accessibility friendly interface for users.
+
 ---
 
 ## Features
@@ -18,9 +24,14 @@ The program connects to a HackRF device, captures IQ samples, performs signal pr
     - High-pass
     - Band-pass
     - Band-stop
-- Demodulates RF signals into audio
+- Demodulates RF signals into audio (FM/AM)
 - Saves the demodulated signal as a `.wav` file
 - Modular signal processing classes for easy expansion
+- JavaScript Live Server UI
+   - Basic HackRF interface
+   - Automotive TPMS (Tire Pressure Monitoring System) interface
+   - Radio Astronomy Hydrogen Line interface
+- Pulls data from the HackRf in given context 
 
 ---
 

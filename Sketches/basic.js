@@ -27,6 +27,9 @@ let rightArrowHover = false;
 let frequencyInput;
 let sampleRateInput;
 
+let saveDataEnabled =
+    localStorage.getItem("saveData") === "true";
+
 // function preload() {
 //     clickSound = loadSound(
 //         "../Sounds/click.wav",
@@ -1116,6 +1119,14 @@ function mousePressed(){
         mouseY <= captureY + captureH
     ) {
         playButtonClick();
+        let saveDataEnabled =
+        localStorage.getItem("saveData") === "true";
+
+        if (saveDataEnabled) {
+            console.log("Saving capture data...");
+        } else {
+            console.log("Capture data will NOT be saved.");
+        }
 
         rawLiveCapture = generateMockCapture();
         applyTuning();
