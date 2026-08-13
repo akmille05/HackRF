@@ -21,6 +21,33 @@ let smallSize;
 
 let clickSound;
 
+// Accent/theme color (the color that's used for panel borders, header,
+// toggle "on" state, etc. — originally hardcoded orange).
+let selectedThemeColor = { r: 255, g: 140, b: 0 }; // default: original orange
+
+const themeOptions = [
+    { name: "Orange",      r: 255, g: 140, b: 0   },
+    { name: "Turquoise",   r: 64,  g: 224, b: 208 },
+    { name: "Hot Pink",    r: 255, g: 105, b: 180 },
+    { name: "Neon Green",  r: 57,  g: 255, b: 20  },
+    { name: "Red",         r: 255, g: 0,   b: 0   },
+    { name: "Lavender",    r: 180, g: 160, b: 255 }
+];
+
+// Call this once in setup() on every page.
+function loadThemeColor() {
+    let savedTheme = localStorage.getItem("themeColor");
+    if (savedTheme) {
+        selectedThemeColor = JSON.parse(savedTheme);
+    }
+}
+
+// Call this whenever the user picks a new color (settings page only).
+function saveThemeColor(colorObj) {
+    selectedThemeColor = colorObj;
+    localStorage.setItem("themeColor", JSON.stringify(selectedThemeColor));
+}
+
 function playButtonClick() {
     if (
         !buttonNoiseOn ||
