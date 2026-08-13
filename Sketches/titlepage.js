@@ -2,13 +2,13 @@
 
 let projects = [];
 
-function preload() {
-    clickSound = loadSound(
-        "Sounds/click.wav",
-        () => console.log("Click sound loaded"),
-        error => console.error("Click sound failed:", error)
-    );
-}
+// function preload() {
+//     clickSound = loadSound(
+//         "Sounds/click.wav",
+//         () => console.log("Click sound loaded"),
+//         error => console.error("Click sound failed:", error)
+//     );
+// }
 
 function setup() {
     createCanvas(windowWidth, windowHeight);

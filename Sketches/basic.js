@@ -3,6 +3,14 @@ console.log("BASIC.JS LOADED");
 let fftEnabled = false;
 let filterEnabled = false;
 let amplifyEnabled = false;
+let activeEnabled = false;
+
+let freqSlider;
+
+let smoothedData = null;
+let peakHold = null;
+
+let rawLiveCapture = null; 
 
 // Which filter type is active when filterEnabled is true
 let filterType = "Lowpass";
@@ -16,13 +24,19 @@ let selectedDemod = null;
 let leftArrowHover = false;
 let rightArrowHover = false;
 
-function preload() {
-    clickSound = loadSound(
-        "../Sounds/click.wav",
-        () => console.log("Click sound loaded"),
-        error => console.error("Click sound failed:", error)
-    );
-}
+let frequencyInput;
+let sampleRateInput;
+
+let saveDataEnabled =
+    localStorage.getItem("saveData") === "true";
+
+// function preload() {
+//     clickSound = loadSound(
+//         "../Sounds/click.wav",
+//         () => console.log("Click sound loaded"),
+//         error => console.error("Click sound failed:", error)
+//     );
+// }
 
 let hackrfData = {
     frequency: "",
@@ -59,6 +73,12 @@ function generateSpectrumSignal(peakPos, peakHeight, noiseLevel) {
     }
 
     return data;
+}
+
+function basic_activate() {
+    if (activeEnabled) {
+        //start recording
+    }
 }
 
 // Simple moving-average smoothing helper, used to build the different
@@ -139,6 +159,25 @@ function applyProcessing(data) {
     return result;
 }
 
+testSpectrums["Live"] = new Array(numSpectrumPoints).fill(0);
+
+function fetchLiveSpectrum() {
+    fetch("hackdata.json")
+        .then(res => res.json())
+        .then(data => {
+            if (data.spectrum && data.spectrum.length) {
+                rawLiveCapture = data.spectrum;
+
+                if (!spectrumNames.includes("Live")) {
+                    spectrumNames.push("Live");
+                }
+
+                applyTuning();
+            }
+        })
+        .catch(err => console.error("Live spectrum fetch failed:", err));
+}
+
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -147,13 +186,72 @@ function setup() {
     textAlign(CENTER, CENTER);
     textFont("Orbitron");
 
+    frequencyInput = createInput("103.7");
+    frequencyInput.size(80);
+    frequencyInput.style('font-family', 'Orbitron');
+    frequencyInput.style('background-color', 'rgb(255,140,0)');
+    frequencyInput.style('color', '#232323');
+    frequencyInput.style('border', '2px solid rgb(255,180,60)');
+    frequencyInput.style('border-radius', '6px');
+    frequencyInput.style('padding', '4px 8px');
+
+    sampleRateInput = createInput("2.4");
+    sampleRateInput.size(80);
+    sampleRateInput.style('font-family', 'Orbitron');
+    sampleRateInput.style('background-color', 'rgb(255,140,0)');
+    sampleRateInput.style('color', '#232323');
+    sampleRateInput.style('border', '2px solid rgb(255,180,60)');
+    sampleRateInput.style('border-radius', '6px');
+    sampleRateInput.style('padding', '4px 8px');
+
+    freqSlider = createSlider(80, 115, 98.7, 0.1);
+    freqSlider.input(applyTuning);
+    freqSlider.style('accent-color', 'rgb(255,140,0)');
+
+    updateFrequencyControl(); 
+
     loadHackRFData();
     generateTestSpectrums();
+    setInterval(fetchLiveSpectrum, 3000);
+}
+
+function loadLiveSnippet() {
+    // cache-bust so the browser doesn't just re-serve the old file
+    loadSound("radio_snippet.wav?t=" + Date.now(), sound => {
+        if (liveSound) liveSound.disconnect();
+        liveSound = sound;
+        liveSound.setVolume(0);   // mute playback, we just want the analysis
+        liveSound.play();
+        fftAnalyzer.setInput(liveSound);
+    });
+}
+
+function updateFrequencyControl() {
+    if (selectedDemod === "FM") {
+        freqSlider.attribute('min', 80);
+        freqSlider.attribute('max', 115);
+        freqSlider.attribute('step', 0.1);
+        freqSlider.value(98.7);
+        freqSlider.show();
+        frequencyInput.hide();
+    } else if (selectedDemod === "AM") {
+        freqSlider.attribute('min', 530);
+        freqSlider.attribute('max', 1710);
+        freqSlider.attribute('step', 10);
+        freqSlider.value(1000);
+        freqSlider.show();
+        frequencyInput.hide();
+    } else {
+        freqSlider.hide();
+        frequencyInput.show();
+    }
+
+    applyTuning();
 }
 
 async function loadHackRFData() {
     try {
-        const response = await fetch("hackrf_data.json");
+        const response = await fetch("hackdata.json");
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -172,6 +270,7 @@ function draw() {
     drawHeader();
     drawSpectrumViewer();
     drawDemodulator();
+    drawRunCaptureButton();
     drawSettingsPanel();
     drawHomeButton();
     drawSettingsButton();
@@ -186,6 +285,90 @@ function drawHeader() {
     fill(255);
     textSize(titleSize);
     text("Basic HackRF Dashboard", width/2,45);
+}
+
+function applyTuning() {
+    if (!rawLiveCapture) return;
+
+    if (!selectedDemod) {
+        testSpectrums["Live"] = rawLiveCapture.slice();
+        return;
+    }
+
+    let freqValue = freqSlider.value();
+    let minFreq = selectedDemod === "FM" ? 80 : 530;
+    let maxFreq = selectedDemod === "FM" ? 115 : 1710;
+
+    let frac = constrain((freqValue - minFreq) / (maxFreq - minFreq), 0, 1);
+    let shift = Math.floor(frac * rawLiveCapture.length);
+
+    testSpectrums["Live"] = rawLiveCapture.slice(shift).concat(rawLiveCapture.slice(0, shift));
+}
+
+function drawSpectrumGrid(x, y, w, h) {
+    stroke(lightModeOn ? 210 : 55);
+    strokeWeight(1);
+
+    let rows = 6;
+    for (let i = 0; i <= rows; i++) {
+        let gy = y + 55 + (i / rows) * (h - 100);
+        line(x + 55, gy, x + w - 20, gy);
+    }
+
+    let cols = 8;
+    for (let i = 0; i <= cols; i++) {
+        let gx = x + 55 + (i / cols) * (w - 75);
+        line(gx, y + 55, gx, y + h - 55);
+    }
+
+    // -------------------------------
+    // Axis labels
+    // -------------------------------
+
+    noStroke();
+    fill(textColor);
+    textSize(labelSize * 0.8);
+
+    // X-axis label
+    textAlign(CENTER, CENTER);
+
+    let xAxisLabel = fftEnabled ? "Frequency" : "Time";
+
+    text(
+        xAxisLabel,
+        x + w / 2,
+        y + h - 15
+    );
+
+    // Y-axis label
+    push();
+
+    translate(
+        x + 15,
+        y + h / 2
+    );
+
+    rotate(-HALF_PI);
+
+    text(
+        "Amplitude",
+        0,
+        0
+    );
+
+    pop();
+
+    noStroke();
+}
+
+function updatePeakHold(data) {
+    if (!peakHold || peakHold.length !== data.length) {
+        peakHold = data.slice();
+        return;
+    }
+    for (let i = 0; i < data.length; i++) {
+        peakHold[i] = data[i] > peakHold[i] ? data[i] : peakHold[i] - 0.15;
+    }
 }
 
 function drawSpectrumViewer(){
@@ -206,26 +389,77 @@ function drawSpectrumViewer(){
     text("Spectrum Viewer",x+w/2,y+25);
 
     //---------------------------------------
-    // Test spectrum (reacts to toggles)
+    // Grid
     //---------------------------------------
 
-    stroke(255,140,0);
-    strokeWeight(2);
-    noFill();
+    drawSpectrumGrid(x, y, w, h);
+
+    //---------------------------------------
+    // Data prep: process, smooth, peak-hold
+    //---------------------------------------
 
     let rawData = testSpectrums[spectrumNames[spectrumIndex]];
     let data = applyProcessing(rawData);
 
-    beginShape();
-
-    for (let i = 0; i < data.length; i++) {
-        let px = x + 20 + (i / (data.length - 1)) * (w - 40);
-        let py = y + h/2 - data[i] * 2.2;
-
-        vertex(px, py);
+    if (!smoothedData || smoothedData.length !== data.length) {
+        smoothedData = data.slice();
+    } else {
+        for (let i = 0; i < data.length; i++) {
+            smoothedData[i] = lerp(smoothedData[i], data[i], 0.35);
+        }
     }
 
+    updatePeakHold(smoothedData);
+
+    //---------------------------------------
+    // Filled area under the curve
+    //---------------------------------------
+
+    noStroke();
+    fill(255,140,0,40);
+    beginShape();
+    vertex(x + 55, y + h/2);
+    for (let i = 0; i < smoothedData.length; i++) {
+        let px = x + 55 + (i / (smoothedData.length - 1)) * (w - 75);
+        let py = y + h/2 - smoothedData[i] * 2.2;
+        vertex(px, py);
+    }
+    vertex(x + w - 20, y + h/2);
+    endShape(CLOSE);
+
+    //---------------------------------------
+    // Main glowing trace
+    //---------------------------------------
+
+    drawingContext.shadowBlur = 8;
+    drawingContext.shadowColor = "rgba(255,140,0,0.8)";
+    stroke(255,180,60);
+    strokeWeight(2);
+    noFill();
+
+    beginShape();
+    for (let i = 0; i < smoothedData.length; i++) {
+        let px = x + 55 + (i / (smoothedData.length - 1)) * (w - 75);
+        let py = y + h/2 - smoothedData[i] * 2.2;
+        vertex(px, py);
+    }
     endShape();
+
+    drawingContext.shadowBlur = 0;
+
+        if (selectedDemod && spectrumNames[spectrumIndex] === "Live") {
+        let freqValue = freqSlider.value();
+        let minFreq = selectedDemod === "FM" ? 80 : 530;
+        let maxFreq = selectedDemod === "FM" ? 115 : 1710;
+
+        let frac = constrain((freqValue - minFreq) / (maxFreq - minFreq), 0, 1);
+        let markerX = x + 55 + frac * (w - 75);
+
+        stroke(255, 255, 255, 70);
+        strokeWeight(1);
+        line(markerX, y + 55, markerX, y + h - 55);
+        noStroke();
+    }
 
     //---------------------------------------
     // Filter type label (only while Apply Filter is on)
@@ -414,6 +648,38 @@ function drawToggleSwitch(x, y, checked, label) {
     text(label + (checked ? "  (ON)" : "  (OFF)"), x + toggleW + 15, y + toggleH/2);
 }
 
+function drawRunCaptureButton(){
+
+    let x = 40;
+    let y = height*0.64 + height*0.22 + 15;  // just under the demodulator panel
+    let w = width*0.42;
+    let h = 50;
+
+    let hovering =
+        mouseX >= x &&
+        mouseX <= x + w &&
+        mouseY >= y &&
+        mouseY <= y + h;
+
+    stroke(255,140,0);
+    strokeWeight(3);
+
+    if (hovering) {
+        fill(255,160,30);
+    } else {
+        fill(255,140,0);
+    }
+
+    rect(x, y, w, h, 10);
+
+    noStroke();
+    fill(35);
+
+    textAlign(CENTER, CENTER);
+    textSize(labelSize);
+    text("Run Capture", x + w/2, y + h/2);
+}
+
 // Small selectable pill button, used for the filter-type picker
 function drawFilterOptionButton(x, y, w, h, label, active) {
 
@@ -490,17 +756,42 @@ function drawSettingsPanel(){
     // Info: frequency, sample rate, active toggles
     //------------------------------------
 
-    text(
-        "Frequency: " + (103700000 / 1e6).toFixed(1) + " MHz",
-        left,
-        y + 90
-    );
+    
+    // text(
+    //     "Tuned Frequency (MHz):",
+    //     left,
+    //     y + 90
+    // );
+
+    // let freqLabelW = textWidth("Tuned Frequency (MHz):");
+    // frequencyInput.position(left + freqLabelW + 15, y + 90 - 10);
 
     text(
-        "Sample Rate: " + (2400000 / 1e6).toFixed(1) + " MS/s",
+        "Sample Rate (MS/s):",
         left,
         y + 120
     );
+
+    let srLabelW = textWidth("Sample Rate (MS/s):");
+    sampleRateInput.position(left + srLabelW + 15, y + 120 - 10);
+
+
+    let freqLabel = selectedDemod === "AM" ? "Tuned Frequency (kHz):" : "Tuned Frequency (MHz):";
+    text(freqLabel, left, y + 90);
+
+    let freqLabelW = textWidth(freqLabel);
+
+    if (selectedDemod) {
+        freqSlider.position(left + freqLabelW + 15, y + 90 - 10);
+        freqSlider.size(140);
+
+        let unit = selectedDemod === "AM" ? " kHz" : " MHz";
+        let decimals = selectedDemod === "AM" ? 0 : 1;
+
+        text(freqSlider.value().toFixed(decimals) + unit, left + freqLabelW + 165, y + 90);
+    } else {
+        frequencyInput.position(left + freqLabelW + 15, y + 90 - 10);
+    }
 
     let activeToggles = [];
     if (fftEnabled) activeToggles.push("FFT");
@@ -573,6 +864,15 @@ function drawHomeButton(){
     textSize(labelSize);
 
     text("← Home",80,42);
+}
+
+function generateMockCapture() {
+    // randomize a bit each run so repeated captures don't look identical
+    let peakPos = random(0.2, 0.8);
+    let peakHeight = random(30, 50);
+    let noiseLevel = random(4, 9);
+
+    return generateSpectrumSignal(peakPos, peakHeight, noiseLevel);
 }
 
 // Top-right box, same styling as the Home button, links to settings.js
@@ -672,6 +972,7 @@ function mousePressed(){
     ) {
         playButtonClick();
         selectedDemod = (selectedDemod === "FM") ? null : "FM";
+        updateFrequencyControl();   // <-- add this
         console.log(selectedDemod);
     }
 
@@ -684,6 +985,7 @@ function mousePressed(){
     ) {
         playButtonClick();
         selectedDemod = (selectedDemod === "AM") ? null : "AM";
+        updateFrequencyControl();   // <-- add this
         console.log(selectedDemod);
     }
 
@@ -801,4 +1103,38 @@ function mousePressed(){
 
     }
 
+    //------------------------------------
+    // Run Capture button (under Demodulator)
+    //------------------------------------
+
+    let captureX = 40;
+    let captureY = height*0.64 + height*0.22 + 15;
+    let captureW = width*0.42;
+    let captureH = 50;
+
+    if (
+        mouseX >= captureX &&
+        mouseX <= captureX + captureW &&
+        mouseY >= captureY &&
+        mouseY <= captureY + captureH
+    ) {
+        playButtonClick();
+        let saveDataEnabled =
+        localStorage.getItem("saveData") === "true";
+
+        if (saveDataEnabled) {
+            console.log("Saving capture data...");
+        } else {
+            console.log("Capture data will NOT be saved.");
+        }
+
+        rawLiveCapture = generateMockCapture();
+        applyTuning();
+
+        if (!spectrumNames.includes("Live")) {
+            spectrumNames.push("Live");
+        }
+
+        spectrumIndex = spectrumNames.indexOf("Live");
+    }
 }
