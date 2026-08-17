@@ -1,4 +1,3 @@
-
 console.log("TPMS.JS LOADED");
 
 // ============================================================
@@ -11,8 +10,6 @@ const TPMS_FREQUENCY = 315.000; // MHz
 let fftEnabled = false;
 let smoothingEnabled = false;
 let baselineEnabled = false;
-let noiseEnabled = false;
-let packetDetectionEnabled = false;
 
 let activeEnabled = false;
 
@@ -1662,10 +1659,6 @@ function drawArrowButton(
 // TPMS information panel
 // ============================================================
 
-// ============================================================
-// TPMS information panel
-// ============================================================
-
 function drawTPMSPanel() {
 
     let x = 40;
@@ -2152,18 +2145,6 @@ function drawSettingsPanel() {
         );
 
 
-    if (noiseEnabled)
-        activeToggles.push(
-            "Noise"
-        );
-
-
-    if (packetDetectionEnabled)
-        activeToggles.push(
-            "Packet Detection"
-        );
-
-
     text(
         "Active: " +
         (
@@ -2211,30 +2192,6 @@ function drawSettingsPanel() {
         y + 350,
         baselineEnabled,
         "Remove Baseline"
-    );
-
-
-    // --------------------------------------------------------
-    // Noise
-    // --------------------------------------------------------
-
-    drawToggleSwitch(
-        left,
-        y + 410,
-        noiseEnabled,
-        "Estimate Noise"
-    );
-
-
-    // --------------------------------------------------------
-    // Packet Detection
-    // --------------------------------------------------------
-
-    drawToggleSwitch(
-        left,
-        y + 470,
-        packetDetectionEnabled,
-        "Detect Packets"
     );
 }
 
@@ -2662,52 +2619,6 @@ function mousePressed() {
     }
 
 
-    // Noise
-
-    if (
-        mouseX >= toggleX &&
-        mouseX <=
-            toggleX +
-            toggleW &&
-        mouseY >=
-            settingsY +
-            410 &&
-        mouseY <=
-            settingsY +
-            410 +
-            toggleH
-    ) {
-
-        playButtonClick();
-
-        noiseEnabled =
-            !noiseEnabled;
-    }
-
-
-    // Packet detection
-
-    if (
-        mouseX >= toggleX &&
-        mouseX <=
-            toggleX +
-            toggleW &&
-        mouseY >=
-            settingsY +
-            470 &&
-        mouseY <=
-            settingsY +
-            470 +
-            toggleH
-    ) {
-
-        playButtonClick();
-
-        packetDetectionEnabled =
-            !packetDetectionEnabled;
-    }
-
-
     // --------------------------------------------------------
     // Spectrum arrows
     // --------------------------------------------------------
@@ -2917,4 +2828,3 @@ function windowResized() {
         windowHeight
     );
 }
-
