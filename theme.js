@@ -31,7 +31,8 @@ const themeOptions = [
     { name: "Hot Pink",    r: 255, g: 105, b: 180 },
     { name: "Neon Green",  r: 57,  g: 255, b: 20  },
     { name: "Red",         r: 255, g: 0,   b: 0   },
-    { name: "Lavender",    r: 180, g: 160, b: 255 }
+    { name: "Lavender",    r: 180, g: 160, b: 255 },
+    { name: "Neon Blue",   r: 30,  g: 144, b: 255 }
 ];
 
 // Call this once in setup() on every page.
